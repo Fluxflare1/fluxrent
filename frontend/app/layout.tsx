@@ -1,4 +1,4 @@
-import '../styles/globals.css'
+import './globals.css'
 import Sidebar from '../components/layout/Sidebar'
 import Topbar from '../components/layout/Topbar'
 
