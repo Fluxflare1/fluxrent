@@ -1,5 +1,8 @@
-node_modules
-.next
+node_modules/
+.next/
 .env
 .env.local
-dist
+.DS_Store
+dist/
+.vscode/
+.idea/
