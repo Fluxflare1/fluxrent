@@ -1,12 +1,14 @@
-# Use Node.js LTS
+# Build image for Next.js dev usage
 FROM node:18-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install
+COPY frontend/package.json frontend/package-lock.json* ./frontend/
+WORKDIR /app/frontend
 
-COPY . .
+RUN npm ci
+
+COPY frontend/ ./
 
 EXPOSE 3000
 
