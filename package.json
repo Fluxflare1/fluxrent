@@ -1,0 +1,10 @@
+{
+  "name": "property-tenant-mgmt-mvp",
+  "private": true,
+  "workspaces": ["frontend"],
+  "scripts": {
+    "dev": "npm --workspace frontend run dev",
+    "build": "npm --workspace frontend run build",
+    "start": "npm --workspace frontend run start"
+  }
+}
