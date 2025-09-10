@@ -1,11 +1,22 @@
-version: '3.9'
+version: '3.8'
 services:
-  frontend:
-    build: ./frontend
+  web:
+    build:
+      context: ./frontend
     ports:
       - "3000:3000"
-    env_file:
-      - .env
+    environment:
+      - NODE_ENV=development
+      - GOOGLE_CLIENT_EMAIL=${GOOGLE_CLIENT_EMAIL}
+      - GOOGLE_PRIVATE_KEY=${GOOGLE_PRIVATE_KEY}
+      - GOOGLE_SHEETS_ID=${GOOGLE_SHEETS_ID}
+      - GOOGLE_DRIVE_FOLDER_ID=${GOOGLE_DRIVE_FOLDER_ID}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - PAYSTACK_SECRET_KEY=${PAYSTACK_SECRET_KEY}
+      - PAYSTACK_PUBLIC_KEY=${PAYSTACK_PUBLIC_KEY}
     volumes:
       - ./frontend:/app
-    command: "npm run dev"
+    command: ["npm", "run", "dev"]
