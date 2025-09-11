@@ -7,7 +7,7 @@ import { updateTenantKyc } from "../../../../lib/googleSheets"
 // This config format is correct for Next.js 13+
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: false
   },
 }
 
