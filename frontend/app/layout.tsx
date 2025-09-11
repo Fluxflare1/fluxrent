@@ -1,16 +1,24 @@
 import './globals.css'
+import React from 'react'
 import Sidebar from '../components/layout/Sidebar'
 import Topbar from '../components/layout/Topbar'
+
+export const metadata = {
+  title: 'Tenant Management',
+  description: 'Tenant & Property Management MVP'
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="flex h-screen bg-gray-50">
+      <body className="flex min-h-screen">
         <Sidebar />
-        <main className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col">
           <Topbar />
-          <div className="p-6">{children}</div>
-        </main>
+          <main className="p-6">
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   )
