@@ -1,28 +1,19 @@
-import fetch from "node-fetch"
-
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY
-const PAYSTACK_INITIALIZE_URL = "https://api.paystack.co/transaction/initialize"
-const PAYSTACK_VERIFY_URL_BASE = "https://api.paystack.co/transaction/verify"
+// frontend/lib/paystack.ts
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || ''
 
 if (!PAYSTACK_SECRET) {
-  console.warn("Paystack secret key not configured - /api/paystack endpoints will fail.")
+  console.warn("Paystack secret not configured; Paystack endpoints will fail.")
 }
 
-/**
- * initializeTransaction - creates transaction on Paystack and returns authorization URL
- * @param {number} amount in NGN or base currency in kobo => Paystack expects amount in kobo
- * @param {string} email
- * @param {object} metadata additional metadata
- */
-export async function initializeTransaction(amount: number, email: string, metadata: any = {}) {
+export async function initializeTransaction(amountKobo: number, email: string, metadata: any = {}) {
+  // amountKobo: amount in kobo (for NGN)
   const body = {
     email,
-    amount: Math.round(amount), // assume caller sends in kobo if using NGN; handle conversion on caller
-    callback_url: process.env.PAYSTACK_CALLBACK_URL,
+    amount: Math.round(amountKobo),
+    callback_url: process.env.NEXTAUTH_URL ? `${process.env.NEXTAUTH_URL}/api/paystack/webhook` : undefined,
     metadata
   }
-
-  const resp = await fetch(PAYSTACK_INITIALIZE_URL, {
+  const res = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${PAYSTACK_SECRET}`,
@@ -30,22 +21,18 @@ export async function initializeTransaction(amount: number, email: string, metad
     },
     body: JSON.stringify(body)
   })
-
-  const data = await resp.json()
-  if (!data.status) throw new Error(data.message || "Paystack initialize failed")
-  return data.data // includes authorization_url, reference, access_code, amount
+  const data = await res.json()
+  if (!data.status) throw new Error(data.message || 'Paystack initialization failed')
+  return data.data
 }
 
-/**
- * verifyTransaction - verify transaction by reference
- */
 export async function verifyTransaction(reference: string) {
-  const url = `${PAYSTACK_VERIFY_URL_BASE}/${encodeURIComponent(reference)}`
-  const resp = await fetch(url, {
+  const url = `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`
+  const res = await fetch(url, {
     method: "GET",
     headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` }
   })
-  const data = await resp.json()
-  if (!data.status) throw new Error(data.message || "Paystack verify failed")
+  const data = await res.json()
+  if (!data.status) throw new Error(data.message || 'Paystack verify failed')
   return data.data
 }
