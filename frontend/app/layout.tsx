@@ -1,4 +1,4 @@
-import './globals.css'
+import '../styles/globals.css'
 import React from 'react'
 import Sidebar from '../components/layout/Sidebar'
 import Topbar from '../components/layout/Topbar'
