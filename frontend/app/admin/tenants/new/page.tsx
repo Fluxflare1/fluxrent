@@ -1,11 +1,14 @@
-"use client"
-import TenantForm from "../../../../components/forms/TenantForm"
+'use client'
+import React from 'react'
+import TenantForm from '../../../../components/forms/TenantForm'
 
 export default function NewTenantPage() {
   return (
     <div>
-      <h1 className="text-xl font-bold mb-4">Add New Tenant</h1>
-      <TenantForm />
+      <h2 className="text-xl font-semibold mb-4">Add Tenant</h2>
+      <div className="card">
+        <TenantForm />
+      </div>
     </div>
   )
 }
