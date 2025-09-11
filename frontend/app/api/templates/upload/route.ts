@@ -1,20 +1,17 @@
-// frontend/app/api/templates/upload/route.ts
 import { NextResponse } from "next/server"
 import formidable from "formidable"
 import fs from "fs"
 import { uploadToDrive } from "../../../../lib/drive"
 import { addTemplate } from "../../../../lib/googleSheets"
 
-// Updated config format for Next.js 13+
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-}
+// Use the new route segment config format
+export const runtime = 'nodejs' // Ensure Node.js runtime for file operations
+export const dynamic = 'force-dynamic'
+export const maxDuration = 60 // Longer timeout for file uploads
 
-function parseForm(req: Request) {
+function parseForm(req: Request): Promise<{ fields: any; files: any }> {
   const form = new formidable.IncomingForm()
-  return new Promise<{ fields: any; files: any }>((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     form.parse(req as any, (err, fields, files) => {
       if (err) return reject(err)
       resolve({ fields, files })
@@ -22,7 +19,7 @@ function parseForm(req: Request) {
   })
 }
 
-async function readFile(file: any) {
+async function readFile(file: any): Promise<Buffer> {
   if (file.filepath) {
     return fs.promises.readFile(file.filepath)
   }
