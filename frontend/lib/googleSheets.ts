@@ -11,26 +11,32 @@ function getAuth() {
   }
   const auth = new google.auth.GoogleAuth({
     credentials,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets','https://www.googleapis.com/auth/drive']
+    scopes: [
+      'https://www.googleapis.com/auth/spreadsheets',
+      'https://www.googleapis.com/auth/drive'
+    ]
   })
   return auth
 }
 
-function getSheets() {
+function getSheetsClient() {
   const auth = getAuth()
   return google.sheets({ version: 'v4', auth })
 }
 
 const SHEET_ID = process.env.GOOGLE_SHEETS_ID || ''
 
+/* --------------------------
+   Tenants
+   -------------------------- */
 export async function getTenants() {
-  const sheets = getSheets()
+  const sheets = getSheetsClient()
   const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Tenants!A2:L' })
   return res.data.values || []
 }
 
 export async function addTenant(data: any) {
-  const sheets = getSheets()
+  const sheets = getSheetsClient()
   const values = [[
     data.id || `t_${Date.now()}`,
     data.name || '',
@@ -45,21 +51,22 @@ export async function addTenant(data: any) {
     data.end_date || '',
     data.created_at || new Date().toISOString()
   ]]
-  await sheets.spreadsheets.values.append({ spreadsheetId: SHEET_ID, range: 'Tenants!A2', valueInputOption: 'USER_ENTERED', requestBody: { values } })
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: 'Tenants!A2',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values }
+  })
   return values[0]
 }
 
 export async function updateTenantKyc(tenantId: string, kycLink: string) {
-  // Find tenant row and update the kyc_link column (column H index 8 in our A..L)
-  // We will read the Tenants sheet, find the row index and update specific cell
-  const sheets = getSheets()
+  const sheets = getSheetsClient()
   const tenantRows = (await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Tenants!A2:L' })).data.values || []
   const rowIndex = tenantRows.findIndex(r => (r[0] || '').toString() === tenantId)
-  if (rowIndex === -1) {
-    throw new Error(`Tenant with id ${tenantId} not found`)
-  }
-  const sheetRowNumber = rowIndex + 2 // because data starts at row 2
-  const kycCell = `H${sheetRowNumber}` // H column is 8th: A B C D E F G H ...
+  if (rowIndex === -1) throw new Error(`Tenant with id ${tenantId} not found`)
+  const sheetRowNumber = rowIndex + 2
+  const kycCell = `H${sheetRowNumber}`
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
     range: `Tenants!${kycCell}`,
@@ -69,14 +76,17 @@ export async function updateTenantKyc(tenantId: string, kycLink: string) {
   return { ok: true, tenantId, kycLink }
 }
 
+/* --------------------------
+   Payments
+   -------------------------- */
 export async function getPayments() {
-  const sheets = getSheets()
+  const sheets = getSheetsClient()
   const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Payments!A2:K' })
   return res.data.values || []
 }
 
 export async function recordPayment(data: any) {
-  const sheets = getSheets()
+  const sheets = getSheetsClient()
   const row = [
     data.id || `p_${Date.now()}`,
     data.payment_reference || data.id || '',
@@ -90,17 +100,17 @@ export async function recordPayment(data: any) {
     data.notes || '',
     new Date().toISOString()
   ]
-  await sheets.spreadsheets.values.append({ spreadsheetId: SHEET_ID, range: 'Payments!A2', valueInputOption: 'USER_ENTERED', requestBody: { values: [row] } })
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: 'Payments!A2',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [row] }
+  })
   return row
 }
 
-/**
- * recordPaymentFromPaystack
- * Accepts verified paystack payload and appends a Payments row.
- * Expects fields: reference, amount (in kobo), customer_email, metadata (object, may include tenant_id)
- */
 export async function recordPaymentFromPaystack({ reference, amount, customer_email, metadata }: any) {
-  const sheets = getSheets()
+  const sheets = getSheetsClient()
   const tenantId = metadata?.tenant_id || ''
   const tenantName = metadata?.tenant_name || customer_email || ''
   const amountFloat = (Number(amount) / 100).toFixed(2)
@@ -118,6 +128,87 @@ export async function recordPaymentFromPaystack({ reference, amount, customer_em
     JSON.stringify(metadata || {}),
     now
   ]
-  await sheets.spreadsheets.values.append({ spreadsheetId: SHEET_ID, range: 'Payments!A2', valueInputOption: 'USER_ENTERED', requestBody: { values: [row] } })
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: 'Payments!A2',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [row] }
+  })
   return row
+}
+
+/* --------------------------
+   Utilities
+   -------------------------- */
+
+/**
+ * getUtilities - reads Utilities sheet and returns rows
+ * Sheet expected headers:
+ * id | tenant_id | month | LAWMA | Cleaner | Water | Community | Misc | BankCharges | total | created_at
+ */
+export async function getUtilities() {
+  const sheets = getSheetsClient()
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Utilities!A2:K' })
+  const rows = res.data.values || []
+  // Return as objects for frontend convenience
+  return rows.map((r: any[]) => ({
+    id: r[0] || null,
+    tenant_id: r[1] || '',
+    month: r[2] || '',
+    LAWMA: Number(r[3] || 0),
+    Cleaner: Number(r[4] || 0),
+    Water: Number(r[5] || 0),
+    Community: Number(r[6] || 0),
+    Misc: Number(r[7] || 0),
+    BankCharges: Number(r[8] || 0),
+    total: Number(r[9] || 0),
+    created_at: r[10] || ''
+  }))
+}
+
+/**
+ * addUtility - append utility row
+ * accepts object with tenant_id, month, LAWMA, Cleaner, Water, Community, Misc, BankCharges
+ */
+export async function addUtility(data: any) {
+  const sheets = getSheetsClient()
+  const LAWMA = Number(data.LAWMA || 0)
+  const Cleaner = Number(data.Cleaner || 0)
+  const Water = Number(data.Water || 0)
+  const Community = Number(data.Community || 0)
+  const Misc = Number(data.Misc || 0)
+  const BankCharges = Number(data.BankCharges || 0)
+  const total = LAWMA + Cleaner + Water + Community + Misc + BankCharges
+  const row = [
+    data.id || `u_${Date.now()}`,
+    data.tenant_id || '',
+    data.month || '',
+    LAWMA,
+    Cleaner,
+    Water,
+    Community,
+    Misc,
+    BankCharges,
+    total,
+    data.created_at || new Date().toISOString()
+  ]
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: 'Utilities!A2',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [row] }
+  })
+  return {
+    id: row[0],
+    tenant_id: row[1],
+    month: row[2],
+    LAWMA,
+    Cleaner,
+    Water,
+    Community,
+    Misc,
+    BankCharges,
+    total,
+    created_at: row[10]
+  }
 }
