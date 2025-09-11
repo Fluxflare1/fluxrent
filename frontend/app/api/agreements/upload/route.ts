@@ -4,12 +4,12 @@ import fs from "fs"
 import { uploadToDrive } from "../../../../lib/drive"
 import { updateTenantKyc } from "../../../../lib/googleSheets"
 
-// Use the new route segment config format instead
+// Use the new route segment config format
 export const runtime = 'nodejs' // Ensure Node.js runtime for file operations
+export const dynamic = 'force-dynamic'
+export const maxDuration = 60 // Longer timeout for file uploads
 
-// For Next.js 13.4+, you can also use:
-// export const dynamic = 'force-dynamic'
-// export const maxDuration = 30; // Set appropriate timeout for file uploads
+// ... rest of your existing code remains the same
 
 function parseForm(req: Request): Promise<{ fields: any; files: any }> {
   const form = new formidable.IncomingForm()
