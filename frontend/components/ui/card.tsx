@@ -1,20 +1,35 @@
+// frontend/components/ui/card.tsx
 import * as React from "react";
+import { cn } from "@/lib/utils";
 
-export const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
-  className = "",
-  children,
-}) => (
-  <div className={`rounded-xl border bg-white shadow p-4 ${className}`}>
-    {children}
-  </div>
-);
+export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {}
 
-export const CardHeader: React.FC<{ className?: string; children: React.ReactNode }> = ({
-  className = "",
-  children,
-}) => <div className={`mb-2 font-semibold ${className}`}>{children}</div>;
+function Card({ className, ...props }: CardProps) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-gray-200 bg-white text-gray-900 shadow-soft",
+        className
+      )}
+      {...props}
+    />
+  );
+}
 
-export const CardContent: React.FC<{ className?: string; children: React.ReactNode }> = ({
-  className = "",
-  children,
-}) => <div className={className}>{children}</div>;
+function CardHeader({ className, ...props }: CardProps) {
+  return (
+    <div className={cn("px-4 py-3 border-b border-gray-100", className)} {...props} />
+  );
+}
+
+function CardContent({ className, ...props }: CardProps) {
+  return <div className={cn("px-4 py-3", className)} {...props} />;
+}
+
+function CardFooter({ className, ...props }: CardProps) {
+  return (
+    <div className={cn("px-4 py-3 border-t border-gray-100", className)} {...props} />
+  );
+}
+
+export { Card, CardHeader, CardContent, CardFooter };
