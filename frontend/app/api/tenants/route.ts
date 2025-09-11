@@ -66,3 +66,42 @@ export async function POST(req: Request) {
     );
   }
 }
+
+
+
+import { NextResponse } from "next/server";
+import { getSheets, ensureSheetTabs } from "@/app/lib/googleSheets";
+
+const spreadsheetId = process.env.GOOGLE_SHEET_ID!;
+
+export async function GET(req: Request) {
+  try {
+    const sheets = await getSheets();
+    await ensureSheetTabs();
+
+    // Load Invoices
+    const invRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: "Invoices!A2:Z",
+    });
+    const invHeaders = ["id","apartment_id","tenant_id","period","amount","status","created_at"];
+    const invoices = (invRes.data.values || []).map((r) =>
+      Object.fromEntries(invHeaders.map((h, i) => [h, r[i] || ""]))
+    );
+
+    // Load Payments
+    const payRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: "Payments!A2:Z",
+    });
+    const payHeaders = ["id","invoice_id","tenant_id","tenant_name","amount","method","ref","status","notes","created_at","receipt_link"];
+    const payments = (payRes.data.values || []).map((r) =>
+      Object.fromEntries(payHeaders.map((h, i) => [h, r[i] || ""]))
+    );
+
+    return NextResponse.json({ invoices, payments });
+  } catch (e: any) {
+    console.error(e);
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
