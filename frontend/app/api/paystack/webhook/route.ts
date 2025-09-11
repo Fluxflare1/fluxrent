@@ -2,12 +2,10 @@ import { NextResponse } from "next/server"
 import crypto from "crypto"
 import { recordPaymentFromPaystack } from "../../../../lib/googleSheets"
 
-// Updated config format for Next.js 13+
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-}
+// Use the new route segment config format instead of deprecated config
+export const runtime = 'nodejs' // Ensure Node.js runtime for crypto operations
+export const dynamic = 'force-dynamic' // Ensure dynamic handling for webhooks
+export const maxDuration = 30 // Set appropriate timeout
 
 function bufferToString(buffer: Buffer) {
   return buffer.toString('utf8')
@@ -15,6 +13,7 @@ function bufferToString(buffer: Buffer) {
 
 export async function POST(req: Request) {
   try {
+    // For Next.js 13.4+, handle raw body parsing manually
     const buf = await req.arrayBuffer()
     const raw = Buffer.from(buf)
     const signature = req.headers.get('x-paystack-signature') || ''
