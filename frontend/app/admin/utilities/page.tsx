@@ -1,11 +1,11 @@
 "use client"
+import { useState, useEffect } from "react"
 import axios from "axios"
-import React, { useEffect, useState } from 'react'
 import UtilitiesForm from '../../../components/forms/UtilitiesForm'
 import UtilitiesTable from '../../../components/tables/UtilitiesTable'
 
-
-export default function UtilitiesPage() {
+// Keep this as named export if you want to use it elsewhere
+export function UtilitiesPage() {
   const [tenantId, setTenantId] = useState("")
   const [month, setMonth] = useState("")
   const [lawma, setLawma] = useState(0)
@@ -39,10 +39,7 @@ export default function UtilitiesPage() {
   )
 }
 
-
-
-
-
+// Keep this as default
 export default function UtilitiesAdminPage() {
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
