@@ -1,5 +1,5 @@
 // frontend/app/layout.tsx
-import "./globals.css";
+import "./styles/globals.css";   // ✅ Correct path
 import React from "react";
 import Sidebar from "../components/layout/Sidebar";
 import Topbar from "../components/layout/Topbar";
