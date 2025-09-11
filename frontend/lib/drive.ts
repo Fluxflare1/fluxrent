@@ -1,48 +1,60 @@
+// frontend/lib/drive.ts
 import { google } from "googleapis"
 import stream from "stream"
+import fs from "fs"
 
-function getAuth() {
+function getAuthClient() {
   const credentials = {
     client_email: process.env.GOOGLE_CLIENT_EMAIL,
     private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n")
   }
+  if (!credentials.client_email || !credentials.private_key) {
+    throw new Error("Google credentials not configured in env variables.")
+  }
   const auth = new google.auth.GoogleAuth({
     credentials,
-    scopes: ["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
+    scopes: [
+      "https://www.googleapis.com/auth/drive.file",
+      "https://www.googleapis.com/auth/drive"
+    ],
   })
   return auth
 }
 
 /**
- * Uploads a file to Google Drive under specified folder.
- * @param name filename
- * @param mimeType content-type
- * @param buffer Buffer or string
- * @param parents optional folder id array
+ * Upload a file buffer or path to Google Drive in configured folder.
+ * Returns file metadata including webViewLink.
  */
-export async function uploadToDrive(name: string, mimeType: string, buffer: Buffer | string, parents?: string[]) {
-  const auth = getAuth()
+export async function uploadToDrive(filename: string, mimeType: string, bufferOrFilePath: Buffer | string, parents?: string[]) {
+  const auth = getAuthClient()
   const drive = google.drive({ version: "v3", auth })
-  const media = {
-    mimeType,
-    body: typeof buffer === "string" ? Buffer.from(buffer) : buffer
+
+  let fileBody: stream.Readable
+  if (Buffer.isBuffer(bufferOrFilePath)) {
+    const passthrough = new stream.PassThrough()
+    passthrough.end(bufferOrFilePath)
+    fileBody = passthrough
+  } else {
+    // treat as path
+    fileBody = fs.createReadStream(bufferOrFilePath)
   }
 
-  // Use a readable stream for large files
-  const passthrough = new stream.PassThrough()
-  passthrough.end(media.body)
+  const folderId = parents && parents.length ? parents : (process.env.GOOGLE_DRIVE_FOLDER_ID ? [process.env.GOOGLE_DRIVE_FOLDER_ID] : undefined)
 
   const res = await drive.files.create({
     requestBody: {
-      name,
+      name: filename,
       mimeType,
-      parents: parents || (process.env.GOOGLE_DRIVE_FOLDER_ID ? [process.env.GOOGLE_DRIVE_FOLDER_ID] : undefined)
+      parents: folderId
     },
-    media: { body: passthrough },
+    media: {
+      mimeType,
+      body: fileBody
+    },
     fields: "id, name, mimeType, webViewLink, webContentLink"
   })
 
-  // Make file shareable (anyone with link can view) — optional, comment if you prefer restricted sharing
+  // Attempt to make file viewable by anyone with link (optional)
   try {
     await drive.permissions.create({
       fileId: res.data.id!,
@@ -51,9 +63,9 @@ export async function uploadToDrive(name: string, mimeType: string, buffer: Buff
         type: "anyone"
       }
     })
-  } catch (e) {
-    // permission creation may fail if folder policy restricted; ignore gracefully
-    console.warn("drive permission creation failed:", e)
+  } catch (err) {
+    // Don't fail on permission errors; log for debugging
+    console.warn("drive: permission set failed:", (err as any)?.message || err)
   }
 
   const file = await drive.files.get({ fileId: res.data.id!, fields: "id, name, webViewLink, webContentLink, mimeType" })
