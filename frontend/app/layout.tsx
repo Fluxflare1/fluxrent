@@ -2,6 +2,7 @@ import './styles/globals.css'  // Changed from '../' to './'
 import React from 'react'
 import Sidebar from '../components/layout/Sidebar'
 import Topbar from '../components/layout/Topbar'
+import { ToastProvider } from "@/components/ui/toast";
 
 export const metadata = {
   title: 'Tenant Management',
@@ -22,4 +23,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </body>
     </html>
   )
+}
+
+
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
+    </html>
+  );
 }
