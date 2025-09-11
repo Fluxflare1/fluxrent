@@ -1,4 +1,4 @@
-import '../styles/globals.css'
+import './styles/globals.css'  // Changed from '../' to './'
 import React from 'react'
 import Sidebar from '../components/layout/Sidebar'
 import Topbar from '../components/layout/Topbar'
