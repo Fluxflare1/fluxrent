@@ -1,8 +1,23 @@
-import { NextResponse } from "next/server"
-import { recordPayment } from "../../../lib/googleSheets"
+import { NextResponse } from 'next/server'
+import { getPayments, recordPayment } from '../../../lib/googleSheets'
+
+export async function GET() {
+  try {
+    const payments = await getPayments()
+    return NextResponse.json(payments)
+  } catch (e:any) {
+    console.error(e)
+    return NextResponse.json({ error: e.message }, { status: 500 })
+  }
+}
 
 export async function POST(req: Request) {
-  const data = await req.json()
-  const payment = await recordPayment(data)
-  return NextResponse.json(payment)
+  try {
+    const body = await req.json()
+    const p = await recordPayment(body)
+    return NextResponse.json(p)
+  } catch (e:any) {
+    console.error(e)
+    return NextResponse.json({ error: e.message }, { status: 500 })
+  }
 }
