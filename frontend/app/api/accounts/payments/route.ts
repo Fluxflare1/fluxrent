@@ -35,7 +35,7 @@ export async function GET() {
 
     return NextResponse.json(payments);
   } catch (e: any) {
-    console.error(e);
+    console.error("Error fetching payments:", e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    console.error(e);
+    console.error("Error recording payment:", e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
