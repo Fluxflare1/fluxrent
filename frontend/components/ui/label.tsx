@@ -1,13 +1,14 @@
-import React from 'react'
+import * as React from "react";
 
-export const Label = React.forwardRef<
-  HTMLLabelElement,
-  React.LabelHTMLAttributes<HTMLLabelElement>
->(({ className = '', ...props }, ref) => (
+export const Label: React.FC<{
+  htmlFor?: string;
+  className?: string;
+  children: React.ReactNode;
+}> = ({ htmlFor, className = "", children }) => (
   <label
-    ref={ref}
-    className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${className}`}
-    {...props}
-  />
-))
-Label.displayName = 'Label'
+    htmlFor={htmlFor}
+    className={`block text-sm font-medium text-gray-700 mb-1 ${className}`}
+  >
+    {children}
+  </label>
+);
