@@ -24,3 +24,44 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message || String(err) }, { status: 500 })
   }
 }
+
+
+import { NextResponse } from "next/server";
+import { getSheets, ensureSheetTabs } from "@/app/lib/googleSheets";
+import { v4 as uuid } from "uuid";
+
+const spreadsheetId = process.env.GOOGLE_SHEET_ID!;
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const sheets = await getSheets();
+    await ensureSheetTabs();
+
+    const receiptId = uuid();
+    const receiptLink = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=0`; // could be replaced with PDF later
+
+    const row = [
+      receiptId,
+      body.payment_reference,
+      body.tenant_name,
+      body.amount,
+      body.date,
+      body.method,
+      body.notes || "",
+      receiptLink,
+    ];
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: "Receipts!A:Z",
+      valueInputOption: "RAW",
+      requestBody: { values: [row] },
+    });
+
+    return NextResponse.json({ ok: true, receipt_link: receiptLink });
+  } catch (e: any) {
+    console.error(e);
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
