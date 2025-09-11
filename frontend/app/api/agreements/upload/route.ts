@@ -4,12 +4,12 @@ import fs from "fs"
 import { uploadToDrive } from "../../../../lib/drive"
 import { updateTenantKyc } from "../../../../lib/googleSheets"
 
-// This config format is correct for Next.js 13+
-export const config = {
-  api: {
-    bodyParser: false
-  },
-}
+// Use the new route segment config format instead
+export const runtime = 'nodejs' // Ensure Node.js runtime for file operations
+
+// For Next.js 13.4+, you can also use:
+// export const dynamic = 'force-dynamic'
+// export const maxDuration = 30; // Set appropriate timeout for file uploads
 
 function parseForm(req: Request): Promise<{ fields: any; files: any }> {
   const form = new formidable.IncomingForm()
@@ -38,6 +38,8 @@ async function readFileAsBuffer(file: any): Promise<Buffer | null> {
 
 export async function POST(req: Request) {
   try {
+    // For Next.js 13.4+, you can handle raw body parsing manually
+    // instead of relying on the deprecated config
     const { fields, files } = await parseForm(req)
     const file = files?.file || files?.File || files?.upload || null
     const tenantId = (fields?.tenant_id || fields?.tenant || '').toString()
