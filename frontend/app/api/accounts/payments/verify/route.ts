@@ -30,3 +30,45 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Failed to verify" }, { status: 500 });
   }
 }
+
+
+
+
+import { NextResponse } from "next/server";
+import { getSheets } from "@/app/lib/googleSheets";
+
+const spreadsheetId = process.env.GOOGLE_SHEET_ID!;
+
+export async function POST(req: Request) {
+  try {
+    const { ref, status } = await req.json();
+    const sheets = await getSheets();
+
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: "Payments!A2:Z",
+    });
+
+    const rows = res.data.values || [];
+    let updated = false;
+
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i][6] === ref) {
+        rows[i][7] = status; // status column
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: `Payments!A${i + 2}:Z${i + 2}`,
+          valueInputOption: "RAW",
+          requestBody: { values: [rows[i]] },
+        });
+        updated = true;
+        break;
+      }
+    }
+
+    return NextResponse.json({ ok: updated });
+  } catch (e: any) {
+    console.error(e);
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
