@@ -64,10 +64,36 @@ export async function uploadToDrive(filename: string, mimeType: string, bufferOr
       }
     })
   } catch (err) {
-    // Don't fail on permission errors; log for debugging
     console.warn("drive: permission set failed:", (err as any)?.message || err)
   }
 
   const file = await drive.files.get({ fileId: res.data.id!, fields: "id, name, webViewLink, webContentLink, mimeType" })
   return file.data
+}
+
+/**
+ * copyFile - make a copy of an existing Drive file (useful for tenant-specific agreement copies)
+ * Returns the new file metadata
+ */
+export async function copyFile(fileId: string, newName?: string, parents?: string[]) {
+  const auth = getAuthClient()
+  const drive = google.drive({ version: "v3", auth })
+  const res = await drive.files.copy({
+    fileId,
+    requestBody: {
+      name: newName || `Copy-${Date.now()}`,
+      parents: parents || (process.env.GOOGLE_DRIVE_FOLDER_ID ? [process.env.GOOGLE_DRIVE_FOLDER_ID] : undefined)
+    },
+    fields: "id, name, webViewLink, webContentLink, mimeType"
+  })
+  // Make public (optional)
+  try {
+    await drive.permissions.create({
+      fileId: res.data.id!,
+      requestBody: { role: "reader", type: "anyone" }
+    })
+  } catch (e) {
+    console.warn("drive: permission create failed for copy", e)
+  }
+  return res.data
 }
