@@ -4,10 +4,10 @@ import fs from "fs"
 import { uploadToDrive } from "../../../../lib/drive"
 import { addTemplate } from "../../../../lib/googleSheets"
 
-// Use the new route segment config format
-export const runtime = 'nodejs' // Ensure Node.js runtime for file operations
+// Use the new route segment config format - REMOVE ANY OLD export const config
+export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60 // Longer timeout for file uploads
+export const maxDuration = 60
 
 function parseForm(req: Request): Promise<{ fields: any; files: any }> {
   const form = new formidable.IncomingForm()
