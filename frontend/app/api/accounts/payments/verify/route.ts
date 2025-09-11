@@ -3,7 +3,6 @@ import { getGoogleSheets, getSheets } from "@/lib/googleSheets";
 
 const spreadsheetId = process.env.GOOGLE_SHEET_ID || process.env.SHEET_ID!;
 
-// Verify by payment_id
 export async function POST(req: Request) {
   try {
     const { payment_id, ref, status } = await req.json();
@@ -20,7 +19,7 @@ export async function POST(req: Request) {
     if (payment_id) {
       const idx = rows.findIndex((r) => r[0] === payment_id);
       if (idx !== -1) {
-        rows[idx][8] = "VERIFIED";
+        rows[idx][8] = "VERIFIED"; // Status column
         await sheets.spreadsheets.values.update({
           spreadsheetId,
           range: `Payments!A${idx + 2}:Z${idx + 2}`,
