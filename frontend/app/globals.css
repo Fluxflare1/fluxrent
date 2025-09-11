@@ -2,7 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global custom styles */
+/* global styles */
+:root {
+  --primary: #4a6fa5;
+  --accent: #166088;
+}
 body {
   @apply bg-gray-50 text-gray-900;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
+.card { @apply bg-white rounded-lg p-4 shadow-sm; }
