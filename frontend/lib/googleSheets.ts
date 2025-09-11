@@ -26,9 +26,7 @@ function getSheetsClient() {
 
 const SHEET_ID = process.env.GOOGLE_SHEETS_ID || ''
 
-/* --------------------------
-   Tenants
-   -------------------------- */
+/* TENANTS (unchanged) */
 export async function getTenants() {
   const sheets = getSheetsClient()
   const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Tenants!A2:L' })
@@ -60,6 +58,7 @@ export async function addTenant(data: any) {
   return values[0]
 }
 
+/* UPDATE TENANT KYC (unchanged) */
 export async function updateTenantKyc(tenantId: string, kycLink: string) {
   const sheets = getSheetsClient()
   const tenantRows = (await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Tenants!A2:L' })).data.values || []
@@ -76,9 +75,7 @@ export async function updateTenantKyc(tenantId: string, kycLink: string) {
   return { ok: true, tenantId, kycLink }
 }
 
-/* --------------------------
-   Payments
-   -------------------------- */
+/* PAYMENTS (unchanged) */
 export async function getPayments() {
   const sheets = getSheetsClient()
   const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Payments!A2:K' })
@@ -137,20 +134,11 @@ export async function recordPaymentFromPaystack({ reference, amount, customer_em
   return row
 }
 
-/* --------------------------
-   Utilities
-   -------------------------- */
-
-/**
- * getUtilities - reads Utilities sheet and returns rows
- * Sheet expected headers:
- * id | tenant_id | month | LAWMA | Cleaner | Water | Community | Misc | BankCharges | total | created_at
- */
+/* UTILITIES (unchanged) */
 export async function getUtilities() {
   const sheets = getSheetsClient()
   const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Utilities!A2:K' })
   const rows = res.data.values || []
-  // Return as objects for frontend convenience
   return rows.map((r: any[]) => ({
     id: r[0] || null,
     tenant_id: r[1] || '',
@@ -166,10 +154,6 @@ export async function getUtilities() {
   }))
 }
 
-/**
- * addUtility - append utility row
- * accepts object with tenant_id, month, LAWMA, Cleaner, Water, Community, Misc, BankCharges
- */
 export async function addUtility(data: any) {
   const sheets = getSheetsClient()
   const LAWMA = Number(data.LAWMA || 0)
@@ -211,4 +195,87 @@ export async function addUtility(data: any) {
     total,
     created_at: row[10]
   }
+}
+
+/* TEMPLATES & AGREEMENTS */
+
+/**
+ * getTemplates - read Templates sheet (id | name | drive_link | created_at)
+ */
+export async function getTemplates() {
+  const sheets = getSheetsClient()
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Templates!A2:D' })
+  const rows = res.data.values || []
+  return rows.map((r:any[]) => ({ id: r[0], name: r[1], drive_link: r[2], created_at: r[3] }))
+}
+
+/**
+ * addTemplate - append template metadata to Templates sheet
+ */
+export async function addTemplate({ id, name, drive_link }: any) {
+  const sheets = getSheetsClient()
+  const row = [ id || `tpl_${Date.now()}`, name || 'template', drive_link || '', new Date().toISOString() ]
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: 'Templates!A2',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [[...row]] }
+  })
+  return { id: row[0], name: row[1], drive_link: row[2], created_at: row[3] }
+}
+
+/**
+ * addAgreement - create an Agreements row connecting tenant -> template -> file link
+ * Agreements sheet header: id | tenant_id | template_id | drive_link | created_at
+ */
+export async function addAgreement({ tenant_id, template_id, drive_link }: any) {
+  const sheets = getSheetsClient()
+  const row = [ `agr_${Date.now()}`, tenant_id || '', template_id || '', drive_link || '', new Date().toISOString() ]
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: 'Agreements!A2',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [row] }
+  })
+  return { id: row[0], tenant_id: row[1], template_id: row[2], drive_link: row[3], created_at: row[4] }
+}
+
+/* NOTIFICATIONS LOGGING */
+export async function logNotification({ to_email, to_phone, type, template, status, response }: any) {
+  const sheets = getSheetsClient()
+  const row = [ `n_${Date.now()}`, to_email || '', to_phone || '', type || '', template || '', status || '', new Date().toISOString(), response ? JSON.stringify(response) : '' ]
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: 'Notifications!A2',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [row] }
+  })
+  return { ok: true }
+}
+
+/* INVOICES sheet appending (used by PDF generator) */
+export async function addInvoiceRow(invoiceData: any) {
+  // invoiceData fields: id, invoice_number, tenant_id, lease_id, issued_date, due_date, subtotal, utilities_total, total, status, pdf_link
+  const sheets = getSheetsClient()
+  const row = [
+    invoiceData.id || `inv_${Date.now()}`,
+    invoiceData.invoice_number || '',
+    invoiceData.tenant_id || '',
+    invoiceData.lease_id || '',
+    invoiceData.issued_date || '',
+    invoiceData.due_date || '',
+    invoiceData.subtotal || 0,
+    invoiceData.utilities_total || 0,
+    invoiceData.total || 0,
+    invoiceData.status || 'issued',
+    invoiceData.pdf_link || '',
+    new Date().toISOString()
+  ]
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: 'Invoices!A2',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [row] }
+  })
+  return { ok: true, invoice: row }
 }
