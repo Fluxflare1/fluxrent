@@ -4,30 +4,39 @@
 
 /* Theme variables */
 :root {
-  --primary: #4a6fa5;
-  --accent: #166088;
-  --background: #f9fafb;
-  --foreground: #111827;
-  --muted: #6b7280;
+  --color-primary: #4a6fa5;
+  --color-accent: #166088;
+  --color-background: #f9fafb;
+  --color-foreground: #111827;
+  --color-muted: #6b7280;
 }
 
-/* Apply base styles */
+/* Base styles */
 html, body {
-  @apply h-full bg-[var(--background)] text-[var(--foreground)] font-sans;
+  @apply h-full font-sans;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
 }
 
 h1, h2, h3, h4, h5, h6 {
-  @apply font-semibold text-[var(--foreground)];
+  @apply font-semibold;
+  color: var(--color-foreground);
 }
 
 a {
-  @apply text-primary hover:underline;
+  color: var(--color-primary);
+}
+a:hover {
+  text-decoration: underline;
 }
 
 button {
-  @apply rounded-lg px-4 py-2 font-medium bg-primary text-white hover:opacity-90;
+  @apply rounded-lg px-4 py-2 font-medium text-white hover:opacity-90;
+  background-color: var(--color-primary);
 }
 
 .card {
-  @apply bg-white rounded-xl p-4 shadow-soft;
+  @apply rounded-xl p-4;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); /* replaces shadow-soft */
 }
