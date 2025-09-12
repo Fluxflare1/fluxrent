@@ -259,7 +259,7 @@ export default function AdminPaymentsPage() {
                       </td>
                       <td className="p-2">
                         {p.status !== "VERIFIED" && (
-                          <Button size="sm" onClick={() => handleVerify(p.id)}>
+                          <ButtononClick={() => handleVerify(p.id)}className="px-3 py-1 text-sm">
                             Verify
                           </Button>
                         )}
