@@ -5,7 +5,10 @@ import Link from "next/link";
 export default function LandingNavbar() {
   return (
     <nav className="bg-blue-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
-      <div className="text-xl font-bold">🏠 Whitepace</div>
+      {/* Brand Logo / Name */}
+      <div className="text-xl font-bold tracking-wide">🏢 FluxRent</div>
+
+      {/* Navigation */}
       <div className="space-x-6 text-sm font-medium">
         <Link href="#about" className="hover:text-blue-300">About</Link>
         <Link href="#features" className="hover:text-blue-300">Features</Link>
