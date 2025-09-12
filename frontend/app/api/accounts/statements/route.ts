@@ -1,3 +1,4 @@
+// frontend/app/api/accounts/statements/route.ts
 import { NextResponse } from "next/server";
 import { googleSheets } from "@/lib/googleSheets";
 import { googleDrive } from "@/services/google/drive.service";
@@ -9,7 +10,7 @@ const SHEET_ID = process.env.GOOGLE_SHEET_ID!;
 export async function POST(req: Request) {
   try {
     const { tenant_id } = await req.json();
-    const sheets = await googleSheets();
+    const sheets = googleSheets; // ✅ fixed: no need to call as a function
 
     // Fetch ledger
     const res = await sheets.spreadsheets.values.get({
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
     const pdfBuffer = Buffer.concat(chunks);
 
     // Upload to Drive
-    const drive = await googleDrive();
+    const drive = googleDrive; // ✅ fixed: not callable
     const file = await drive.files.create({
       requestBody: {
         name: `Statement-${tenant_id}-${Date.now()}.pdf`,
