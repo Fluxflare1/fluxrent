@@ -1,21 +1,29 @@
-"use client";
-
+// frontend/components/landing/LandingNavbar.tsx
 import Link from "next/link";
 
 export default function LandingNavbar() {
   return (
-    <nav className="bg-blue-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
-      {/* Brand Logo / Name */}
-      <div className="text-xl font-bold tracking-wide">🏢 FluxRent</div>
+    <nav className="w-full bg-white shadow-sm">
+      <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-md bg-gradient-to-br from-blue-800 to-indigo-600 flex items-center justify-center text-white font-bold">
+            FR
+          </div>
+          <div className="text-lg font-semibold">FluxRent</div>
+        </div>
 
-      {/* Navigation */}
-      <div className="space-x-6 text-sm font-medium">
-        <Link href="#about" className="hover:text-blue-300">About</Link>
-        <Link href="#features" className="hover:text-blue-300">Features</Link>
-        <Link href="#pricing" className="hover:text-blue-300">Pricing</Link>
-        <Link href="/login" className="bg-yellow-400 text-blue-900 px-4 py-2 rounded-md hover:bg-yellow-300">
-          Login
-        </Link>
+        <div className="flex items-center gap-6 text-sm">
+          <Link href="#about" className="hover:text-sky-600">About</Link>
+          <Link href="#features" className="hover:text-sky-600">Features</Link>
+          <Link href="#pricing" className="hover:text-sky-600">Pricing</Link>
+          <Link href="/about" className="hover:text-sky-600">Team</Link>
+          <Link
+            href="/login"
+            className="ml-2 px-4 py-2 rounded-md bg-yellow-400 text-blue-900 font-semibold hover:bg-yellow-300"
+          >
+            Login
+          </Link>
+        </div>
       </div>
     </nav>
   );
