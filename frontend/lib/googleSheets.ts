@@ -62,6 +62,15 @@ export async function getBillById(id: string) { return { id, amount: 0 }; }
 export async function addBillPayment(data: any) { return { ok: true, data }; }
 
 /* -------------------------
+   PAYMENTS
+   ------------------------- */
+export async function getPayments() { return []; }
+export async function recordPayment(data: any) { return { ok: true, data }; }
+export async function recordPaymentFromPaystack(data: any) {
+  return { ok: true, data };
+}
+
+/* -------------------------
    INVOICES
    ------------------------- */
 export async function addInvoiceRow(data: any) { return { ok: true, data }; }
