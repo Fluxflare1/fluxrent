@@ -17,7 +17,7 @@ function getAuth() {
   });
 }
 
-function getSheetsClient() {
+export function getSheetsClient() {
   const auth = getAuth();
   return google.sheets({ version: "v4", auth });
 }
@@ -112,3 +112,9 @@ export async function addTemplate(data: any) {
 export async function getTemplates() {
   return [];
 }
+
+/* --------------------------
+   Legacy compatibility exports
+   -------------------------- */
+export { getSheetsClient as getGoogleSheets };
+export { getSheetsClient as googleSheets };
