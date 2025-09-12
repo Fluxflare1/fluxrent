@@ -1,68 +1,61 @@
+// frontend/components/layout/Topbar.tsx
 "use client";
-
 import { useState } from "react";
-import { Bell, Search, User, ChevronDown } from "lucide-react";
+import { Bell, Search, User } from "lucide-react";
 
 export default function Topbar() {
-  const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="flex items-center justify-between bg-white border-b px-6 py-4 shadow-sm relative">
+    <header className="w-full bg-white border-b border-slate-200 flex items-center justify-between px-6 py-3">
       {/* Search */}
-      <div className="flex items-center bg-gray-100 rounded-lg px-3 py-2 w-1/3">
-        <Search className="w-5 h-5 text-gray-400" />
+      <div className="flex items-center gap-2 w-1/2">
+        <Search className="w-5 h-5 text-slate-500" />
         <input
           type="text"
           placeholder="Search..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="ml-2 bg-transparent outline-none flex-1 text-sm"
+          className="flex-1 px-2 py-1 outline-none"
         />
       </div>
 
       {/* Actions */}
-      <div className="flex items-center space-x-6">
-        {/* Notifications */}
-        <button className="relative text-gray-600 hover:text-gray-900">
-          <Bell className="w-6 h-6" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-white"></span>
+      <div className="flex items-center gap-4">
+        <button className="relative">
+          <Bell className="w-6 h-6 text-slate-600" />
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+            2
+          </span>
         </button>
 
-        {/* User Profile */}
+        {/* Profile dropdown */}
         <div className="relative">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex items-center space-x-2 cursor-pointer"
+            className="flex items-center gap-2"
           >
-            <div className="w-8 h-8 rounded-full bg-indigo-200 flex items-center justify-center font-bold text-indigo-800">
-              U
-            </div>
-            <span className="text-sm font-medium text-gray-700">User</span>
-            <ChevronDown className="w-4 h-4 text-gray-500" />
+            <User className="w-6 h-6 text-slate-600" />
+            <span className="text-slate-700 font-medium">Admin</span>
           </button>
-
-          {/* Dropdown */}
           {menuOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg border py-2 z-50">
+            <div className="absolute right-0 mt-2 w-48 bg-white border rounded-md shadow-md z-10">
               <a
                 href="/profile"
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="block px-4 py-2 text-slate-700 hover:bg-slate-100"
               >
                 Profile
               </a>
               <a
                 href="/settings"
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="block px-4 py-2 text-slate-700 hover:bg-slate-100"
               >
                 Settings
               </a>
-              <button
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                onClick={() => alert('Logging out…')}
+              <a
+                href="/logout"
+                className="block px-4 py-2 text-slate-700 hover:bg-slate-100"
               >
                 Logout
-              </button>
+              </a>
             </div>
           )}
         </div>
