@@ -1,23 +1,24 @@
+// frontend/components/landing/LandingTestimonials.tsx
 export default function LandingTestimonials() {
   return (
-    <section className="px-8 py-20 bg-gray-50 text-center">
-      <h2 className="text-3xl font-bold mb-10">What Our Users Say</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-        
-        <div className="bg-white p-6 rounded-lg shadow-lg">
-          <p className="text-gray-600 mb-4">
-            “FluxRent makes it easy to track rent and manage multiple units.
-            It’s reduced our admin work by 50%.”
-          </p>
-          <h3 className="font-bold">— Alex M., Property Manager</h3>
-        </div>
+    <section className="py-20 bg-white">
+      <div className="max-w-5xl mx-auto px-6 text-center">
+        <h2 className="text-3xl font-semibold mb-8">Trusted by teams and tenants</h2>
 
-        <div className="bg-white p-6 rounded-lg shadow-lg">
-          <p className="text-gray-600 mb-4">
-            “I can pay rent and submit maintenance requests in seconds.
-            Communication with my landlord has never been easier.”
-          </p>
-          <h3 className="font-bold">— Priya K., Tenant</h3>
+        <div className="grid md:grid-cols-2 gap-6">
+          <blockquote className="p-6 bg-slate-50 rounded-lg">
+            <p className="text-slate-700 mb-3">
+              "FluxRent reduced our admin overhead significantly — rent collection and tenant follow-ups are so much simpler."
+            </p>
+            <strong>— Chinyere O., Property Manager</strong>
+          </blockquote>
+
+          <blockquote className="p-6 bg-slate-50 rounded-lg">
+            <p className="text-slate-700 mb-3">
+              "As a tenant, paying rent and filing maintenance requests is effortless. The receipts are handy for records too."
+            </p>
+            <strong>— David K., Tenant</strong>
+          </blockquote>
         </div>
       </div>
     </section>
