@@ -252,7 +252,7 @@ export default function AdminPaymentsPage() {
                             Open
                           </a>
                         ) : (
-                          <Button size="sm" onClick={() => handleGenerateReceipt(p)}>
+                          <Button onClick={() => handleGenerateReceipt(p)}className="px-3 py-1 text-sm">
                             Generate
                           </Button>
                         )}
