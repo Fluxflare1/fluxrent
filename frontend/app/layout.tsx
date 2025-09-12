@@ -1,26 +1,17 @@
-// frontend/app/layout.tsx
-import "./styles/globals.css";   // ✅ Correct path
+import "./styles/globals.css";
 import React from "react";
-import Sidebar from "../components/layout/Sidebar";
-import Topbar from "../components/layout/Topbar";
 import { ToastProvider } from "@/components/ui/toast";
 
 export const metadata = {
   title: "Tenant Management",
-  description: "Tenant & Property Management MVP",
+  description: "Tenant & Property Management SaaS",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 flex flex-col">
-          <Topbar />
-          <main className="p-6">
-            <ToastProvider>{children}</ToastProvider>
-          </main>
-        </div>
+      <body className="min-h-screen bg-gray-50 font-sans text-gray-900">
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );
