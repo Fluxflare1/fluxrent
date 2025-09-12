@@ -1,6 +1,5 @@
-// frontend/pages/api/payments.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getPayments, recordPayment } from "@/lib/googleSheets";
+import { getPayments, recordPayment, addReceiptLinkToPayment } from "@/lib/googleSheets";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -14,10 +13,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(201).json({ ok: true, result });
     }
 
-    res.setHeader("Allow", ["GET", "POST"]);
+    if (req.method === "PUT") {
+      const { ref, link } = req.body;
+      if (!ref || !link) return res.status(400).json({ error: "Missing ref or link" });
+      const result = await addReceiptLinkToPayment(ref, link);
+      return res.status(200).json(result);
+    }
+
+    res.setHeader("Allow", ["GET", "POST", "PUT"]);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   } catch (err: any) {
-    console.error(err);
+    console.error("Payments API error:", err);
     return res.status(500).json({ error: err.message });
   }
 }
