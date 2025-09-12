@@ -1,21 +1,23 @@
+// frontend/app/page.tsx
 import LandingNavbar from "@/components/landing/LandingNavbar";
 import LandingHero from "@/components/landing/LandingHero";
 import LandingFeatures from "@/components/landing/LandingFeatures";
 import LandingPricing from "@/components/landing/LandingPricing";
-import LandingSponsors from "@/components/landing/LandingSponsors";
 import LandingTestimonials from "@/components/landing/LandingTestimonials";
-import LandingFooter from "@/components/landing/LandingFooter";
+import LandingSponsors from "@/components/landing/LandingSponsors";
 
-export default function LandingPage() {
+export default function Page() {
   return (
-    <>
+    <main className="min-h-screen bg-white text-slate-900">
       <LandingNavbar />
       <LandingHero />
       <LandingFeatures />
       <LandingPricing />
-      <LandingSponsors />
       <LandingTestimonials />
-      <LandingFooter />
-    </>
+      <LandingSponsors />
+      <footer className="py-8 text-center text-sm text-slate-500">
+        © {new Date().getFullYear()} FluxRent — Tenant & Property Management
+      </footer>
+    </main>
   );
 }
