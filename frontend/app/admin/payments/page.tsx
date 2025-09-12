@@ -131,7 +131,9 @@ export default function AdminPaymentsPage() {
               <Input
                 name="tenant_name"
                 value={form.tenant_name}
-                onChange={(e) => setForm({ ...form, tenant_name: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, tenant_name: e.target.value })
+                }
                 placeholder="Tenant Name"
               />
             </div>
@@ -140,7 +142,9 @@ export default function AdminPaymentsPage() {
               <Input
                 name="apartment"
                 value={form.apartment}
-                onChange={(e) => setForm({ ...form, apartment: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, apartment: e.target.value })
+                }
                 placeholder="Apartment"
               />
             </div>
@@ -149,7 +153,9 @@ export default function AdminPaymentsPage() {
               <Input
                 name="invoice_id"
                 value={form.invoice_id}
-                onChange={(e) => setForm({ ...form, invoice_id: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, invoice_id: e.target.value })
+                }
                 placeholder="Invoice ID"
               />
             </div>
@@ -187,7 +193,9 @@ export default function AdminPaymentsPage() {
             </div>
           </div>
           <Button onClick={handleSubmit} disabled={submitting} className="mt-4">
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            {submitting ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : null}
             Record Payment
           </Button>
         </CardContent>
@@ -227,7 +235,9 @@ export default function AdminPaymentsPage() {
                       <td className="p-2">{p.tenant_name}</td>
                       <td className="p-2">{p.apartment}</td>
                       <td className="p-2">{p.invoice_id}</td>
-                      <td className="p-2 font-semibold">₦{p.amount.toLocaleString()}</td>
+                      <td className="p-2 font-semibold">
+                        ₦{p.amount.toLocaleString()}
+                      </td>
                       <td className="p-2">{p.method}</td>
                       <td className="p-2">{p.ref}</td>
                       <td className="p-2">
@@ -252,14 +262,20 @@ export default function AdminPaymentsPage() {
                             Open
                           </a>
                         ) : (
-                          <Button onClick={() => handleGenerateReceipt(p)}className="px-3 py-1 text-sm">
+                          <Button
+                            onClick={() => handleGenerateReceipt(p)}
+                            className="px-3 py-1 text-sm"
+                          >
                             Generate
                           </Button>
                         )}
                       </td>
                       <td className="p-2">
                         {p.status !== "VERIFIED" && (
-                          <ButtononClick={() => handleVerify(p.id)}className="px-3 py-1 text-sm">
+                          <Button
+                            onClick={() => handleVerify(p.id)}
+                            className="px-3 py-1 text-sm"
+                          >
                             Verify
                           </Button>
                         )}
