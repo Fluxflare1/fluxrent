@@ -25,26 +25,11 @@ export function getSheetsClient() {
 const SHEET_ID = process.env.GOOGLE_SHEETS_ID || "";
 
 /* --------------------------
-   Utility bootstrap
-   -------------------------- */
-export async function ensureSheetTabs() {
-  // TODO: add logic to create missing tabs
-  return true;
-}
-
-/* --------------------------
-   Tenants
-   -------------------------- */
-export async function getTenants() { /* ... same as yours ... */ }
-export async function addTenant(data: any) { /* ... same as yours ... */ }
-export async function updateTenantKyc(tenantId: string, kycLink: string) { /* ... same as yours ... */ }
-
-/* --------------------------
    Payments
    -------------------------- */
-export async function getPayments() { /* ... same as yours ... */ }
-export async function recordPayment(data: any) { /* ... same as yours ... */ }
-export async function recordPaymentFromPaystack(data: any) { /* ... same as yours ... */ }
+export async function getPayments() { /* ... */ }
+export async function recordPayment(data: any) { /* ... */ }
+export async function recordPaymentFromPaystack(data: any) { /* ... */ }
 
 export async function addReceiptLinkToPayment(ref: string, link: string) {
   const sheets = getSheetsClient();
@@ -67,54 +52,24 @@ export async function addReceiptLinkToPayment(ref: string, link: string) {
 }
 
 /* --------------------------
-   Utilities
+   Bills
    -------------------------- */
-export async function getUtilities() { /* ... same as yours ... */ }
-export async function addUtility(data: any) { /* ... same as yours ... */ }
+export async function getBillById(id: string) { /* ... */ }
+export async function addBillPayment(data: any) { /* ... */ }
 
 /* --------------------------
-   Properties & Apartments
+   Invoices
    -------------------------- */
-export async function addProperty(data: any) { /* ... same as yours ... */ }
-export async function getProperties() { /* ... same as yours ... */ }
-export async function addApartment(data: any) { /* ... same as yours ... */ }
-export async function getApartments(propertyId?: string) { /* ... same as yours ... */ }
-export async function assignTenantToApartment(apartmentId: string, tenantId: string, tenantName: string, leaseStart?: string, leaseEnd?: string) { /* ... same as yours ... */ }
+export async function addInvoiceRow(data: any) { /* ... */ }
 
 /* --------------------------
-   Bills & RentSchedules
+   Agreements
    -------------------------- */
-export async function addRentScheduleRow(data: any) { /* ... same as yours ... */ }
-export async function addBill(data: any) { /* ... same as yours ... */ }
-export async function getBills(filters: any = {}) { /* ... same as yours ... */ }
-export async function getBillById(billId: string) { /* ... same as yours ... */ }
-export async function addBillPayment(data: any) { /* ... same as yours ... */ }
-export async function generateMonthlyBillsForProperty(propertyId: string, period: string, dueDay: number = 5) { /* ... same as yours ... */ }
+export async function addAgreement(data: any) { /* ... */ }
 
 /* --------------------------
-   Notifications & Templates (stubs)
-   -------------------------- */
-export async function getNotifications() {
-  return [];
-}
-export async function logNotification(data: any) {
-  return { ok: true, data };
-}
-export async function getRentSchedules() {
-  return [];
-}
-export async function markRentPaid(id: string) {
-  return { ok: true, id };
-}
-export async function addTemplate(data: any) {
-  return { ok: true, data };
-}
-export async function getTemplates() {
-  return [];
-}
-
-/* --------------------------
-   Legacy compatibility exports
+   Aliases (backward compatibility)
    -------------------------- */
 export { getSheetsClient as getGoogleSheets };
 export { getSheetsClient as googleSheets };
+export { getSheetsClient as getSheets };
