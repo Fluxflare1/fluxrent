@@ -1,26 +1,46 @@
-import React from 'react'
-import Link from 'next/link'
+"use client";
 
-export default function Sidebar() {
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+
+interface NavItem {
+  label: string;
+  href: string;
+  icon?: React.ReactNode;
+}
+
+interface SidebarProps {
+  title: string;
+  navItems: NavItem[];
+  sidebarColor?: string;
+}
+
+export default function Sidebar({ title, navItems, sidebarColor = "bg-indigo-700" }: SidebarProps) {
+  const pathname = usePathname();
+
   return (
-    <aside className="w-64 bg-white border-r min-h-screen p-4">
-      <div className="mb-6">
-        <h3 className="text-lg font-bold">TenantMgmt</h3>
+    <aside className={`w-64 ${sidebarColor} text-white flex flex-col`}>
+      {/* Logo / Title */}
+      <div className="px-6 py-6 text-2xl font-bold border-b border-white/20">
+        {title}
       </div>
-      <nav className="space-y-2 text-sm">
-        <Link href="/" className="block p-2 rounded hover:bg-gray-100">
-          Dashboard
-        </Link>
-        <Link href="/admin/tenants" className="block p-2 rounded hover:bg-gray-100">
-          Tenants
-        </Link>
-        <Link href="/admin/payments" className="block p-2 rounded hover:bg-gray-100">
-          Payments
-        </Link>
-        <Link href="/admin/tenants/new" className="block p-2 rounded hover:bg-gray-100">
-          Add Tenant
-        </Link>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-4 py-6 space-y-2">
+        {navItems.map((item, idx) => (
+          <Link
+            key={idx}
+            href={item.href}
+            className={cn(
+              "block px-3 py-2 rounded-lg hover:bg-white/10",
+              pathname === item.href ? "bg-white/20 font-semibold" : ""
+            )}
+          >
+            {item.label}
+          </Link>
+        ))}
       </nav>
     </aside>
-  )
+  );
 }
