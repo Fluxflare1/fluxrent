@@ -1,4 +1,3 @@
-// frontend/lib/googleSheets.ts
 import { google } from "googleapis";
 
 function getAuth() {
@@ -80,7 +79,7 @@ export async function addProperty(data: any) { /* ... same as yours ... */ }
 export async function getProperties() { /* ... same as yours ... */ }
 export async function addApartment(data: any) { /* ... same as yours ... */ }
 export async function getApartments(propertyId?: string) { /* ... same as yours ... */ }
-export async function assignTenantToApartment(...) { /* ... same as yours ... */ }
+export async function assignTenantToApartment(apartmentId: string, tenantId: string, tenantName: string, leaseStart?: string, leaseEnd?: string) { /* ... same as yours ... */ }
 
 /* --------------------------
    Bills & RentSchedules
@@ -90,7 +89,7 @@ export async function addBill(data: any) { /* ... same as yours ... */ }
 export async function getBills(filters: any = {}) { /* ... same as yours ... */ }
 export async function getBillById(billId: string) { /* ... same as yours ... */ }
 export async function addBillPayment(data: any) { /* ... same as yours ... */ }
-export async function generateMonthlyBillsForProperty(...) { /* ... same as yours ... */ }
+export async function generateMonthlyBillsForProperty(propertyId: string, period: string, dueDay: number = 5) { /* ... same as yours ... */ }
 
 /* --------------------------
    Notifications & Templates (stubs)
