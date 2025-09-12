@@ -8,10 +8,18 @@ export default function Sidebar() {
         <h3 className="text-lg font-bold">TenantMgmt</h3>
       </div>
       <nav className="space-y-2 text-sm">
-        <Link href="/"><a className="block p-2 rounded hover:bg-gray-100">Dashboard</a></Link>
-        <Link href="/admin/tenants"><a className="block p-2 rounded hover:bg-gray-100">Tenants</a></Link>
-        <Link href="/admin/payments"><a className="block p-2 rounded hover:bg-gray-100">Payments</a></Link>
-        <Link href="/admin/tenants/new"><a className="block p-2 rounded hover:bg-gray-100">Add Tenant</a></Link>
+        <Link href="/" className="block p-2 rounded hover:bg-gray-100">
+          Dashboard
+        </Link>
+        <Link href="/admin/tenants" className="block p-2 rounded hover:bg-gray-100">
+          Tenants
+        </Link>
+        <Link href="/admin/payments" className="block p-2 rounded hover:bg-gray-100">
+          Payments
+        </Link>
+        <Link href="/admin/tenants/new" className="block p-2 rounded hover:bg-gray-100">
+          Add Tenant
+        </Link>
       </nav>
     </aside>
   )
