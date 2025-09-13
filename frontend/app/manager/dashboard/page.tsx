@@ -1,82 +1,49 @@
 "use client";
 
-import DashboardLayout from "@/components/layouts/DashboardLayout";
-import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
-  BarChart, Bar, CartesianGrid, XAxis, YAxis, Legend
-} from "recharts";
-
-const navItems = [
-  { label: "Dashboard", href: "/manager/dashboard" },
-  { label: "Properties", href: "/manager/properties" },
-  { label: "Tenants", href: "/manager/tenants" },
-  { label: "Maintenance", href: "/manager/maintenance" },
-  { label: "Settings", href: "/manager/settings" },
-];
-
-const occupancyData = [
-  { name: "Occupied", value: 85 },
-  { name: "Vacant", value: 15 },
-];
-
-const maintenanceData = [
-  { month: "Jan", requests: 12 },
-  { month: "Feb", requests: 18 },
-  { month: "Mar", requests: 10 },
-  { month: "Apr", requests: 22 },
-  { month: "May", requests: 14 },
-];
-
-const COLORS = ["#4a6fa5", "#e5e7eb"];
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function ManagerDashboard() {
-  return (
-    <DashboardLayout title="Manager Portal" navItems={navItems}>
-      {/* Stats */}
-      <section className="grid md:grid-cols-3 gap-6 mb-12">
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-sm text-gray-500">Managed Properties</h3>
-          <p className="text-2xl font-bold mt-2">8</p>
-        </div>
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-sm text-gray-500">Active Tenants</h3>
-          <p className="text-2xl font-bold mt-2">96</p>
-        </div>
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-sm text-gray-500">Open Requests</h3>
-          <p className="text-2xl font-bold mt-2">14</p>
-        </div>
-      </section>
+  const [stats, setStats] = useState<any>(null);
 
-      {/* Charts */}
-      <section className="grid md:grid-cols-2 gap-8 mb-12">
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">Occupancy Rate</h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie data={occupancyData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}>
-                {occupancyData.map((entry, index) => (
-                  <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">Maintenance Requests</h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={maintenanceData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
+  useEffect(() => {
+    fetch("/api/manager/stats")
+      .then((res) => res.json())
+      .then(setStats);
+  }, []);
+
+  if (!stats) return <p>Loading dashboard...</p>;
+
+  const maintenanceData = stats.maintenanceRequestsTrend.map((val: number, idx: number) => ({
+    week: `W${idx + 1}`,
+    requests: val,
+  }));
+
+  return (
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold">Manager Dashboard</h1>
+
+      <div className="grid grid-cols-4 gap-6">
+        <Card><CardContent><p className="text-lg">Properties</p><p className="text-2xl font-bold">{stats.assignedProperties}</p></CardContent></Card>
+        <Card><CardContent><p className="text-lg">Tenants</p><p className="text-2xl font-bold">{stats.tenantsManaged}</p></CardContent></Card>
+        <Card><CardContent><p className="text-lg">Open Tickets</p><p className="text-2xl font-bold">{stats.openTickets}</p></CardContent></Card>
+        <Card><CardContent><p className="text-lg">Resolved</p><p className="text-2xl font-bold">{stats.resolvedTickets}</p></CardContent></Card>
+      </div>
+
+      <Card>
+        <CardContent>
+          <h2 className="font-semibold mb-4">Maintenance Requests (Weekly)</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={maintenanceData}>
+              <XAxis dataKey="week" />
               <YAxis />
               <Tooltip />
-              <Legend />
-              <Bar dataKey="requests" fill="#166088" />
-            </BarChart>
+              <Line type="monotone" dataKey="requests" stroke="#166088" strokeWidth={2} />
+            </LineChart>
           </ResponsiveContainer>
-        </div>
-      </section>
-    </DashboardLayout>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
