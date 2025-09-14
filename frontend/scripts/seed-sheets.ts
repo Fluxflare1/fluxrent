@@ -1,87 +1,76 @@
 // frontend/scripts/seed-sheets.ts
+import { google } from "googleapis";
 import bcrypt from "bcryptjs";
-import { getSheetsClient, addUser } from "../lib/googleSheets";
+import path from "path";
+import fs from "fs";
 
-const SHEET_ID = process.env.GOOGLE_SHEETS_ID || process.env.GOOGLE_SHEET_ID || "";
+async function seed() {
+  const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
+  const keyFile = path.join(process.cwd(), "service-account.json");
 
-async function createSheetIfMissing(sheets: any, title: string, headers: string[]) {
-  // try to add sheet; ignore error if already exists
-  try {
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: SHEET_ID,
-      requestBody: {
-        requests: [
-          {
-            addSheet: {
-              properties: {
-                title,
-                gridProperties: { rowCount: 500, columnCount: headers.length },
-              },
-            },
-          },
-        ],
-      },
-    });
-    console.log(`Created sheet: ${title}`);
-  } catch (err: any) {
-    if (err?.message?.includes("already exists")) {
-      console.log(`Sheet ${title} exists - skipping creation`);
-    } else {
-      // continue; some APIs return other messages
-    }
+  if (!fs.existsSync(keyFile)) {
+    console.error("❌ Missing service-account.json");
+    process.exit(1);
   }
 
-  // set headers in row 1 (idempotent)
-  try {
-    const endCol = String.fromCharCode(65 + headers.length - 1);
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SHEET_ID,
-      range: `${title}!A1:${endCol}1`,
-      valueInputOption: "RAW",
-      requestBody: { values: [headers] },
-    });
-    console.log(`Set headers for ${title}`);
-  } catch (err) {
-    console.error("Failed to set headers", err);
-  }
-}
-
-async function seedAdmin() {
-  const hash = await bcrypt.hash("Admin@1234", 10); // change default password after first login
-  await addUser({
-    id: "usr_1",
-    email: "admin@yourdomain.com",
-    name: "Platform Admin",
-    role: "admin",
-    status: "approved",
-    password_hash: hash,
-    uid: "ADM/0001",
-    created_at: new Date().toISOString(),
+  const auth = new google.auth.GoogleAuth({
+    keyFile,
+    scopes: SCOPES,
   });
-  console.log("✅ Admin user seeded (email: admin@yourdomain.com, password: Admin@1234)");
-}
 
-async function main() {
-  const sheets = getSheetsClient();
-  const definitions: { title: string; headers: string[] }[] = [
+  const sheets = google.sheets({ version: "v4", auth });
+
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+  if (!spreadsheetId) {
+    console.error("❌ Missing GOOGLE_SHEET_ID env variable");
+    process.exit(1);
+  }
+
+  // Seed users with different roles
+  const users = [
     {
-      title: "Users",
-      headers: ["id", "email", "name", "role", "status", "password_hash", "uid", "created_at"],
+      email: "admin@yourdomain.com",
+      password: await bcrypt.hash("Admin@1234", 10),
+      role: "admin",
+      uid: "U1",
     },
-    { title: "Properties", headers: ["id", "name", "address", "managerId", "status", "created_at"] },
-    { title: "Tenants", headers: ["id", "name", "email", "phone", "unitId", "status", "created_at"] },
-    { title: "Payments", headers: ["id", "payment_reference", "tenant_id", "tenant_name", "date", "type", "amount", "method", "status", "notes", "created_at", "receipt_link"] },
-    { title: "Notifications", headers: ["id", "userId", "message", "timestamp"] },
+    {
+      email: "propertyadmin@yourdomain.com",
+      password: await bcrypt.hash("PropertyAdmin@1234", 10),
+      role: "property_admin",
+      uid: "U2",
+    },
+    {
+      email: "tenant@yourdomain.com",
+      password: await bcrypt.hash("Tenant@1234", 10),
+      role: "tenant",
+      uid: "U3",
+    },
   ];
 
-  for (const def of definitions) {
-    await createSheetIfMissing(sheets, def.title, def.headers);
-  }
+  // Write headers + users into the "Users" sheet
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: "Users!A1:D1",
+    valueInputOption: "RAW",
+    requestBody: {
+      values: [["Email", "Password", "Role", "UID"]],
+    },
+  });
 
-  await seedAdmin();
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: "Users!A2",
+    valueInputOption: "RAW",
+    requestBody: {
+      values: users.map((u) => [u.email, u.password, u.role, u.uid]),
+    },
+  });
+
+  console.log("✅ Seeded users into Google Sheet:", users.map((u) => u.email));
 }
 
-main().catch((err) => {
-  console.error(err);
+seed().catch((err) => {
+  console.error("❌ Error seeding data:", err);
   process.exit(1);
 });
