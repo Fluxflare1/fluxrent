@@ -1,39 +1,3 @@
-import { withAuth } from "next-auth/middleware";
-
-export default withAuth({
-  callbacks: {
-    authorized: ({ token, req }) => {
-      const pathname = req.nextUrl.pathname;
-
-      if (!token) return false;
-
-      const role = (token as any).role;
-
-      if (pathname.startsWith("/dashboard/admin")) {
-        return role === "admin";
-      }
-      if (pathname.startsWith("/dashboard/manager")) {
-        return role === "property_manager" || role === "admin";
-      }
-      if (pathname.startsWith("/dashboard/tenant")) {
-        return role === "tenant";
-      }
-      if (pathname.startsWith("/dashboard/agent")) {
-        return role === "agent";
-      }
-      return true;
-    },
-  },
-});
-
-export const config = {
-  matcher: ["/dashboard/:path*"],
-};
-
-
-
-
-
 // frontend/middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -43,27 +7,41 @@ const secret = process.env.NEXTAUTH_SECRET;
 
 export async function middleware(req: NextRequest) {
   const token = await getToken({ req, secret });
-  const { pathname } = req.nextUrl;
+  const pathname = req.nextUrl.pathname;
 
+  // Public routes that should be reachable without auth
+  const publicPaths = [
+    "/",
+    "/auth/signin",
+    "/auth/signout",
+    "/api/public", // add more as needed
+  ];
+  if (publicPaths.some(p => pathname.startsWith(p))) return NextResponse.next();
+
+  // If no token and trying to access protected areas -> redirect to signin
   if (!token) {
+    // protect these namespaces
     if (
       pathname.startsWith("/admin") ||
       pathname.startsWith("/property-admin") ||
-      pathname.startsWith("/tenant")
+      pathname.startsWith("/tenant") ||
+      pathname.startsWith("/dashboard")
     ) {
       return NextResponse.redirect(new URL("/auth/signin", req.url));
     }
     return NextResponse.next();
   }
 
-  // RBAC
-  if (pathname.startsWith("/admin") && token.role !== "admin") {
+  // RBAC: restrict per path
+  const role = (token as any).role || "tenant";
+
+  if (pathname.startsWith("/admin") && role !== "admin") {
     return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
-  if (pathname.startsWith("/property-admin") && token.role !== "property_admin") {
+  if (pathname.startsWith("/property-admin") && role !== "property_admin" && role !== "manager") {
     return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
-  if (pathname.startsWith("/tenant") && token.role !== "tenant") {
+  if (pathname.startsWith("/tenant") && role !== "tenant") {
     return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
 
@@ -71,5 +49,10 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/property-admin/:path*", "/tenant/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/property-admin/:path*",
+    "/tenant/:path*",
+    "/dashboard/:path*",
+  ],
 };
