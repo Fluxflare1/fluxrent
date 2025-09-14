@@ -1,37 +1,59 @@
+// frontend/pages/api/auth/[...nextauth].ts
 import NextAuth from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { NextApiHandler } from "next";
+import { getUserByEmail, verifyPassword } from "@/lib/googleSheets";
 
-export default NextAuth({
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, account, profile }) {
-      if (account && profile) {
-        // Map roles from Users sheet
-        token.role = await getUserRole(profile.email as string);
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      session.user.role = token.role;
-      return session;
-    },
-  },
-});
+const handler: NextApiHandler = async (req, res) => {
+  return NextAuth(req, res, {
+    providers: [
+      CredentialsProvider({
+        name: "Credentials",
+        credentials: {
+          email: { label: "Email", type: "text", placeholder: "you@example.com" },
+          password: { label: "Password", type: "password" },
+        },
+        async authorize(credentials) {
+          if (!credentials?.email || !credentials?.password) return null;
+          const user = await getUserByEmail(credentials.email);
+          if (!user) return null;
+          if (user.status !== "approved") return null;
+          const ok = await verifyPassword(credentials.password, user.password_hash || "");
+          if (!ok) return null;
 
-async function getUserRole(email: string): Promise<string> {
-  // Load from Users sheet
-  const { googleSheets } = await import("@/lib/googleSheets");
-  const sheets = await googleSheets();
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: process.env.GOOGLE_SHEET_ID!,
-    range: "Users!A:C",
+          // return a user object for the session
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            uid: user.uid,
+          };
+        },
+      }),
+    ],
+    session: {
+      strategy: "jwt",
+    },
+    callbacks: {
+      async jwt({ token, user }) {
+        if (user) {
+          token.role = (user as any).role;
+          token.uid = (user as any).uid;
+        }
+        return token;
+      },
+      async session({ session, token }) {
+        (session as any).user.role = token.role;
+        (session as any).user.uid = token.uid;
+        return session;
+      },
+    },
+    secret: process.env.NEXTAUTH_SECRET,
+    pages: {
+      signIn: "/auth/signin",
+    },
   });
-  const rows = res.data.values || [];
-  const user = rows.find((r) => r[1] === email);
-  return user ? user[2] : "tenant"; // default role
-}
+};
+
+export default handler;
