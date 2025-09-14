@@ -23,13 +23,41 @@ export function getSheetsClient() {
   return google.sheets({ version: "v4", auth });
 }
 
-export function getDriveClient() {
-  const auth = getAuth();
-  return google.drive({ version: "v3", auth });
+const SHEET_ID = process.env.GOOGLE_SHEETS_ID || "";
+
+/* -------------------------
+   USERS
+   ------------------------- */
+export async function getUsers() {
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: "Users!A2:H",
+  });
+  return res.data.values || [];
 }
 
-const SHEET_ID = process.env.GOOGLE_SHEETS_ID || "";
-const DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
+export async function addUser(user: any) {
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: "Users!A:H",
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[
+        user.id,
+        user.email,
+        user.name,
+        user.role,
+        user.status,
+        user.password_hash,
+        user.uid,
+        new Date().toISOString(),
+      ]],
+    },
+  });
+  return { ok: true, user };
+}
 
 /* -------------------------
    PROPERTIES
@@ -50,73 +78,6 @@ export async function addProperty(data: any) {
     range: "Properties!A:E",
     valueInputOption: "USER_ENTERED",
     requestBody: { values: [[data.id, data.name, data.address, data.managerId, data.status]] },
-  });
-  return { ok: true, data };
-}
-
-/* -------------------------
-   TENANTS
-   ------------------------- */
-export async function getTenants() {
-  const sheets = getSheetsClient();
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SHEET_ID,
-    range: "Tenants!A2:F",
-  });
-  return res.data.values || [];
-}
-
-export async function addTenant(data: any) {
-  const sheets = getSheetsClient();
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SHEET_ID,
-    range: "Tenants!A:F",
-    valueInputOption: "USER_ENTERED",
-    requestBody: { values: [[data.id, data.name, data.email, data.phone, data.unitId, data.status]] },
-  });
-  return { ok: true, data };
-}
-
-/* -------------------------
-   PAYMENTS
-   ------------------------- */
-export async function recordPayment(data: any) {
-  const sheets = getSheetsClient();
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SHEET_ID,
-    range: "Payments!A:F",
-    valueInputOption: "USER_ENTERED",
-    requestBody: { values: [[data.id, data.tenantId, data.amount, data.date, data.method, data.ref]] },
-  });
-  return { ok: true, data };
-}
-
-/* -------------------------
-   RECEIPTS (Drive Integration)
-   ------------------------- */
-export async function uploadReceipt(fileName: string, mimeType: string, buffer: Buffer) {
-  const drive = getDriveClient();
-  const res = await drive.files.create({
-    requestBody: {
-      name: fileName,
-      parents: [DRIVE_FOLDER_ID],
-    },
-    media: { mimeType, body: buffer },
-    fields: "id, webViewLink",
-  });
-  return res.data;
-}
-
-/* -------------------------
-   NOTIFICATIONS (log to sheet)
-   ------------------------- */
-export async function logNotification(data: any) {
-  const sheets = getSheetsClient();
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SHEET_ID,
-    range: "Notifications!A:D",
-    valueInputOption: "USER_ENTERED",
-    requestBody: { values: [[data.id, data.userId, data.message, new Date().toISOString()]] },
   });
   return { ok: true, data };
 }
