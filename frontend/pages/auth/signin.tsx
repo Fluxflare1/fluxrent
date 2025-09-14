@@ -68,3 +68,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     },
   };
 };
+
+
+
+const result = await signIn("credentials", {
+  redirect: true,
+  email,
+  password,
+  callbackUrl: "/dashboard", // ✅ always redirect here
+});
