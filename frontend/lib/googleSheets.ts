@@ -23,95 +23,100 @@ export function getSheetsClient() {
   return google.sheets({ version: "v4", auth });
 }
 
+export function getDriveClient() {
+  const auth = getAuth();
+  return google.drive({ version: "v3", auth });
+}
+
 const SHEET_ID = process.env.GOOGLE_SHEETS_ID || "";
+const DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
 
 /* -------------------------
    PROPERTIES
    ------------------------- */
-export async function getProperties() { return []; }
-export async function addProperty(data: any) { return { ok: true, data }; }
+export async function getProperties() {
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: "Properties!A2:E",
+  });
+  return res.data.values || [];
+}
 
-/* -------------------------
-   APARTMENTS
-   ------------------------- */
-export async function getApartments() { return []; }
-export async function addApartment(data: any) { return { ok: true, data }; }
-export async function assignTenantToApartment(apartmentId: string, tenantId: string) {
-  return { ok: true, apartmentId, tenantId };
+export async function addProperty(data: any) {
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: "Properties!A:E",
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [[data.id, data.name, data.address, data.managerId, data.status]] },
+  });
+  return { ok: true, data };
 }
 
 /* -------------------------
    TENANTS
    ------------------------- */
-export async function getTenants() { return []; }
-export async function updateTenantKyc(tenantId: string, kycData: any) {
-  return { ok: true, tenantId, kycData };
+export async function getTenants() {
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: "Tenants!A2:F",
+  });
+  return res.data.values || [];
 }
 
-/* -------------------------
-   AGREEMENTS
-   ------------------------- */
-export async function addAgreement(data: any) { return { ok: true, data }; }
-
-/* -------------------------
-   BILLS
-   ------------------------- */
-export async function getBills() { return []; }
-export async function addBill(data: any) { return { ok: true, data }; }
-export async function getBillById(id: string) { return { id, amount: 0 }; }
-export async function addBillPayment(data: any) { return { ok: true, data }; }
-
-/* -------------------------
-   PAYMENTS
-   ------------------------- */
-export async function getPayments() { return []; }
-export async function recordPayment(data: any) { return { ok: true, data }; }
-export async function recordPaymentFromPaystack(data: any) {
+export async function addTenant(data: any) {
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: "Tenants!A:F",
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [[data.id, data.name, data.email, data.phone, data.unitId, data.status]] },
+  });
   return { ok: true, data };
 }
 
 /* -------------------------
-   INVOICES
+   PAYMENTS
    ------------------------- */
-export async function addInvoiceRow(data: any) { return { ok: true, data }; }
-
-/* -------------------------
-   RECEIPTS
-   ------------------------- */
-export async function addReceiptLinkToPayment(ref: string, link: string) {
-  return { ok: true, ref, link };
+export async function recordPayment(data: any) {
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: "Payments!A:F",
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [[data.id, data.tenantId, data.amount, data.date, data.method, data.ref]] },
+  });
+  return { ok: true, data };
 }
 
 /* -------------------------
-   RENT SCHEDULES
+   RECEIPTS (Drive Integration)
    ------------------------- */
-export async function getRentSchedules() { return []; }
-export async function markRentPaid(id: string) { return { ok: true, id }; }
-export async function generateMonthlyBillsForProperty(propertyId: string) {
-  return { ok: true, propertyId };
+export async function uploadReceipt(fileName: string, mimeType: string, buffer: Buffer) {
+  const drive = getDriveClient();
+  const res = await drive.files.create({
+    requestBody: {
+      name: fileName,
+      parents: [DRIVE_FOLDER_ID],
+    },
+    media: { mimeType, body: buffer },
+    fields: "id, webViewLink",
+  });
+  return res.data;
 }
 
 /* -------------------------
-   NOTIFICATIONS
+   NOTIFICATIONS (log to sheet)
    ------------------------- */
-export async function getNotifications() { return []; }
-export async function logNotification(data: any) { return { ok: true, data }; }
-
-/* -------------------------
-   UTILITIES
-   ------------------------- */
-export async function getUtilities() { return []; }
-export async function addUtility(data: any) { return { ok: true, data }; }
-
-/* -------------------------
-   TEMPLATES
-   ------------------------- */
-export async function getTemplates() { return []; }
-export async function addTemplate(data: any) { return { ok: true, data }; }
-
-/* -------------------------
-   ALIASES (for backwards compatibility)
-   ------------------------- */
-export { getSheetsClient as getSheets };
-export { getSheetsClient as googleSheets };
-export { getSheetsClient as getGoogleSheets };
+export async function logNotification(data: any) {
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: "Notifications!A:D",
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [[data.id, data.userId, data.message, new Date().toISOString()]] },
+  });
+  return { ok: true, data };
+}
