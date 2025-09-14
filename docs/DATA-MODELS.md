@@ -1,9 +1,4 @@
-Got it ✅ — let’s lock down a UID generation scheme so that every entity (Property, Apartment, Tenant, Agent) has a standardized, unique, and human-readable ID.
-
-This goes into docs/DATA-MODELS.md.
-
-
----
+Got it ✅ — let’s lock down a UID generation scheme so that every entity (Property, Apartment, Tenant, Agent) has a 
 
 📄 DATA-MODELS.md
 
