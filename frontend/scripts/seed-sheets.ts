@@ -1,10 +1,10 @@
-// frontend/scripts/seed-sheets.ts
+// frontend/scripts/reset-seed.ts
 import { google } from "googleapis";
 import bcrypt from "bcryptjs";
 import path from "path";
 import fs from "fs";
 
-async function seed() {
+async function resetSeed() {
   const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
   const keyFile = path.join(process.cwd(), "service-account.json");
 
@@ -26,7 +26,23 @@ async function seed() {
     process.exit(1);
   }
 
-  // Seed users with different roles
+  // Clear the Users sheet
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId,
+    range: "Users",
+  });
+
+  // Re-insert header row
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: "Users!A1:D1",
+    valueInputOption: "RAW",
+    requestBody: {
+      values: [["Email", "Password", "Role", "UID"]],
+    },
+  });
+
+  // Insert 3 test users
   const users = [
     {
       email: "admin@yourdomain.com",
@@ -48,16 +64,6 @@ async function seed() {
     },
   ];
 
-  // Write headers + users into the "Users" sheet
-  await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range: "Users!A1:D1",
-    valueInputOption: "RAW",
-    requestBody: {
-      values: [["Email", "Password", "Role", "UID"]],
-    },
-  });
-
   await sheets.spreadsheets.values.update({
     spreadsheetId,
     range: "Users!A2",
@@ -67,10 +73,10 @@ async function seed() {
     },
   });
 
-  console.log("✅ Seeded users into Google Sheet:", users.map((u) => u.email));
+  console.log("✅ Users reset + seeded:", users.map((u) => u.email));
 }
 
-seed().catch((err) => {
-  console.error("❌ Error seeding data:", err);
+resetSeed().catch((err) => {
+  console.error("❌ Error resetting data:", err);
   process.exit(1);
 });
