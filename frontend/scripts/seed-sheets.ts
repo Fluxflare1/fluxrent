@@ -16,3 +16,38 @@ async function seedAdmin() {
 }
 
 seedAdmin();
+
+
+
+// frontend/scripts/seed-sheets.ts
+import { getSheetsClient } from "../lib/googleSheets";
+
+const SHEET_ID = process.env.GOOGLE_SHEETS_ID || "";
+
+async function main() {
+  const sheets = getSheetsClient();
+
+  const requests = [
+    {
+      addSheet: { properties: { title: "Properties", gridProperties: { rowCount: 100, columnCount: 5 } } },
+    },
+    {
+      addSheet: { properties: { title: "Tenants", gridProperties: { rowCount: 100, columnCount: 6 } } },
+    },
+    {
+      addSheet: { properties: { title: "Payments", gridProperties: { rowCount: 100, columnCount: 6 } } },
+    },
+    {
+      addSheet: { properties: { title: "Notifications", gridProperties: { rowCount: 100, columnCount: 4 } } },
+    },
+  ];
+
+  await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests } });
+
+  console.log("✅ Sheets created successfully!");
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
