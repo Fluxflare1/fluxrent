@@ -7,25 +7,64 @@ const SHEET_ID = process.env.GOOGLE_SHEETS_ID || "";
 async function createSheets() {
   const sheets = getSheetsClient();
 
-  const requests = [
-    { addSheet: { properties: { title: "Users", gridProperties: { rowCount: 100, columnCount: 8 } } } },
-    { addSheet: { properties: { title: "Properties", gridProperties: { rowCount: 100, columnCount: 5 } } } },
-    { addSheet: { properties: { title: "Tenants", gridProperties: { rowCount: 100, columnCount: 6 } } } },
-    { addSheet: { properties: { title: "Payments", gridProperties: { rowCount: 100, columnCount: 6 } } } },
-    { addSheet: { properties: { title: "Notifications", gridProperties: { rowCount: 100, columnCount: 4 } } } },
+  const sheetDefinitions = [
+    {
+      title: "Users",
+      headers: ["id", "email", "name", "role", "status", "password_hash", "uid", "created_at"],
+    },
+    {
+      title: "Properties",
+      headers: ["id", "name", "address", "managerId", "status"],
+    },
+    {
+      title: "Tenants",
+      headers: ["id", "name", "email", "phone", "unitId", "status"],
+    },
+    {
+      title: "Payments",
+      headers: ["id", "tenantId", "amount", "date", "method", "ref"],
+    },
+    {
+      title: "Notifications",
+      headers: ["id", "userId", "message", "timestamp"],
+    },
   ];
 
-  try {
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: SHEET_ID,
-      requestBody: { requests },
-    });
-    console.log("✅ Sheets created successfully!");
-  } catch (err: any) {
-    if (err.message.includes("already exists")) {
-      console.log("ℹ️ Sheets already exist, skipping creation.");
-    } else {
-      throw err;
+  for (const sheet of sheetDefinitions) {
+    try {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SHEET_ID,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: {
+                  title: sheet.title,
+                  gridProperties: { rowCount: 100, columnCount: sheet.headers.length },
+                },
+              },
+            },
+          ],
+        },
+      });
+
+      // Insert headers in row 1
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SHEET_ID,
+        range: `${sheet.title}!A1:${String.fromCharCode(65 + sheet.headers.length - 1)}1`,
+        valueInputOption: "RAW",
+        requestBody: {
+          values: [sheet.headers],
+        },
+      });
+
+      console.log(`✅ Created sheet: ${sheet.title} with headers`);
+    } catch (err: any) {
+      if (err.message.includes("already exists")) {
+        console.log(`ℹ️ Sheet '${sheet.title}' already exists, skipping...`);
+      } else {
+        throw err;
+      }
     }
   }
 }
