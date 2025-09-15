@@ -12,19 +12,19 @@ const SPREADSHEET_ID = "1amy14SwIt0zv-IPWEE9x44sw6wqTydUtqxgdz_R8ihk";
 
 async function seedSheets() {
   try {
-    // Write headers to the first row
+    // Write headers to the first row, with Username as 7th column
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Sheet1!A1:F1",
+      range: "Sheet1!A1:G1",
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values: [
-          ["UID", "Name", "Email", "Phone", "Role", "Status"],
+          ["UID", "Name", "Email", "Phone", "Role", "Status", "Username"],
         ],
       },
     });
 
-    console.log("✅ Headers created in Google Sheet");
+    console.log("✅ Headers created in Google Sheet with Username column");
   } catch (err) {
     console.error("❌ Error seeding sheets:", err);
   }
