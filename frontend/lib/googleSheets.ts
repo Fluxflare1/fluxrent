@@ -2,10 +2,11 @@
 import { google } from "googleapis";
 import bcrypt from "bcryptjs";
 
-const SCOPES = [
-  "https://www.googleapis.com/auth/spreadsheets",
-  "https://www.googleapis.com/auth/drive",
-];
+const SHEET_ID = process.env.GOOGLE_SHEETS_ID || process.env.GOOGLE_SHEET_ID || "";
+if (!SHEET_ID) {
+  // don't throw here to allow dev flows, but warn
+  console.warn("Warning: GOOGLE_SHEETS_ID is not set in env.");
+}
 
 function getAuth() {
   const credentials = {
@@ -13,11 +14,11 @@ function getAuth() {
     private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
   };
   if (!credentials.client_email || !credentials.private_key) {
-    throw new Error("Google credentials not set in environment variables.");
+    throw new Error("Google credentials not set in environment variables (GOOGLE_CLIENT_EMAIL / GOOGLE_PRIVATE_KEY).");
   }
   return new google.auth.GoogleAuth({
     credentials,
-    scopes: SCOPES,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"],
   });
 }
 
@@ -26,206 +27,88 @@ export function getSheetsClient() {
   return google.sheets({ version: "v4", auth });
 }
 
-const SHEET_ID = process.env.GOOGLE_SHEETS_ID || process.env.GOOGLE_SHEET_ID || "";
-
-if (!SHEET_ID) {
-  // don't throw at import time — let calling code fail more gracefully
-  console.warn("WARNING: GOOGLE_SHEETS_ID is not set. Sheets calls will fail until set.");
-}
-
 /**
- * Ensure Users sheet exists and has header row
+ * Users sheet is expected to exist with headers in row 1:
+ * id | email | name | password_hash | role | status | created_at
  */
-export async function ensureUsersSheet() {
-  const sheets = getSheetsClient();
-  if (!SHEET_ID) throw new Error("SHEET_ID not configured");
+const USERS_RANGE = "Users!A2:G"; // read (starting row 2)
 
-  const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
-  const titles = (meta.data.sheets || []).map((s) => s.properties?.title);
-
-  if (!titles.includes("Users")) {
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: SHEET_ID,
-      requestBody: {
-        requests: [
-          {
-            addSheet: {
-              properties: { title: "Users", gridProperties: { rowCount: 1000, columnCount: 20 } },
-            },
-          },
-        ],
-      },
-    });
-
-    // write header row
-    const headers = [
-      "id",
-      "email",
-      "name",
-      "role",
-      "status",
-      "password_hash",
-      "uid",
-      "created_at",
-      "metadata",
-    ];
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SHEET_ID,
-      range: "Users!A1:I1",
-      valueInputOption: "RAW",
-      requestBody: { values: [headers] },
-    });
-    return true;
-  }
-  return true;
-}
-
-/**
- * Read all users rows (A2..I)
- */
-async function readUsersRows() {
-  const sheets = getSheetsClient();
-  if (!SHEET_ID) throw new Error("SHEET_ID not configured");
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SHEET_ID,
-    range: "Users!A2:I",
-  });
-  return res.data.values || [];
-}
-
-/**
- * Convert a row array to a user object consistent across code
- */
-function rowToUser(r: (string | undefined)[]) {
-  return {
-    id: r[0] || "",
-    email: r[1] || "",
-    name: r[2] || "",
-    role: r[3] || "tenant",
-    status: r[4] || "pending",
-    password_hash: r[5] || "",
-    uid: r[6] || "",
-    created_at: r[7] || "",
-    metadata: r[8] || "",
-  };
-}
-
-/**
- * getUserByEmail - returns user object or null
- */
-export async function getUserByEmail(email: string) {
-  await ensureUsersSheet();
-  const rows = await readUsersRows();
-  const idx = rows.findIndex((r) => (r[1] || "").toLowerCase() === email.toLowerCase());
-  if (idx === -1) return null;
-  const row = rows[idx];
-  const user = rowToUser(row);
-  // expose the sheet row index for updates if needed
-  return { ...user, _sheetIndex: idx + 2 };
-}
-
-/**
- * addUser - appends user row (password should be plain text, will be hashed)
- * returns inserted user object
- */
-export async function addUser(data: {
-  id?: string;
+export type UserRow = {
+  id: string;
   email: string;
   name?: string;
+  password_hash?: string;
   role?: string;
   status?: string;
-  password?: string; // plaintext
-  uid?: string;
-}) {
-  await ensureUsersSheet();
-  const sheets = getSheetsClient();
-  if (!SHEET_ID) throw new Error("SHEET_ID not configured");
+  created_at?: string;
+};
 
-  const id = data.id || `u_${Date.now()}`;
-  const password_hash = data.password ? await bcrypt.hash(data.password, 10) : "";
-  const created_at = new Date().toISOString();
+export async function getAllUsers(): Promise<UserRow[]> {
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: USERS_RANGE,
+  });
+  const rows = res.data.values || [];
+  return rows.map((r: any[]) => ({
+    id: r[0] || "",
+    email: (r[1] || "").toLowerCase(),
+    name: r[2] || "",
+    password_hash: r[3] || "",
+    role: r[4] || "tenant",
+    status: r[5] || "approved",
+    created_at: r[6] || "",
+  }));
+}
+
+export async function getUserByEmail(email: string): Promise<UserRow | null> {
+  if (!email) return null;
+  const all = await getAllUsers();
+  const found = all.find((u) => u.email === email.toLowerCase());
+  return found || null;
+}
+
+export async function getUserById(id: string): Promise<UserRow | null> {
+  if (!id) return null;
+  const all = await getAllUsers();
+  const found = all.find((u) => u.id === id);
+  return found || null;
+}
+
+export async function verifyPassword(email: string, password: string): Promise<UserRow | null> {
+  const user = await getUserByEmail(email);
+  if (!user || !user.password_hash) return null;
+  const ok = await bcrypt.compare(password, user.password_hash);
+  return ok ? user : null;
+}
+
+export async function upsertUser(user: Partial<UserRow>) {
+  // simple append for now (production you may want to find & update)
+  const sheets = getSheetsClient();
+  const id = user.id || `u_${Date.now()}`;
   const row = [
     id,
-    data.email,
-    data.name || "",
-    data.role || "tenant",
-    data.status || "approved",
-    password_hash,
-    data.uid || "",
-    created_at,
-    "",
+    (user.email || "").toLowerCase(),
+    user.name || "",
+    user.password_hash || "",
+    user.role || "tenant",
+    user.status || "approved",
+    user.created_at || new Date().toISOString(),
   ];
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: "Users!A2:I",
+    range: "Users!A:G",
     valueInputOption: "USER_ENTERED",
     requestBody: { values: [row] },
   });
-  return { id, email: data.email, name: data.name || "", role: data.role || "tenant", uid: data.uid || "", created_at };
+  return { id, ...user };
 }
 
-/**
- * verifyPassword(email, plaintext) - returns true if password matches
- */
-export async function verifyPassword(email: string, plaintext: string) {
-  const u = await getUserByEmail(email);
-  if (!u) return false;
-  if (!u.password_hash) return false;
-  const ok = await bcrypt.compare(plaintext, u.password_hash);
-  return ok;
-}
-
-/**
- * updateUser - updates a single cell ranges by rowIndex (starting at 2) and given column/value pairs
- * data is an object mapping header to new value (e.g. { status: "approved" })
- */
-export async function updateUserByRowNumber(rowNumber: number, data: Record<string, string>) {
-  const sheets = getSheetsClient();
-  if (!SHEET_ID) throw new Error("SHEET_ID not configured");
-
-  // map header keys to columns (static map matching header order used earlier)
-  const headerToCol: Record<string, string> = {
-    id: "A",
-    email: "B",
-    name: "C",
-    role: "D",
-    status: "E",
-    password_hash: "F",
-    uid: "G",
-    created_at: "H",
-    metadata: "I",
-  };
-
-  const updates: { range: string; values: string[][] }[] = [];
-  for (const key of Object.keys(data)) {
-    const col = headerToCol[key];
-    if (!col) continue;
-    updates.push({
-      range: `Users!${col}${rowNumber}`,
-      values: [[data[key]]],
-    });
-  }
-
-  if (updates.length === 0) return { ok: false, reason: "nothing to update" };
-
-  await sheets.spreadsheets.values.batchUpdate({
-    spreadsheetId: SHEET_ID,
-    requestBody: { valueInputOption: "USER_ENTERED", data: updates },
-  });
-
-  return { ok: true };
-}
-
-/**
- * clearUsersSheet - deletes all rows (useful for reset seed)
- */
-export async function clearUsersSheet() {
-  const sheets = getSheetsClient();
-  if (!SHEET_ID) throw new Error("SHEET_ID not configured");
-  // Overwrite A2:I with an empty array to clear rows
-  await sheets.spreadsheets.values.clear({ spreadsheetId: SHEET_ID, range: "Users!A2:I" });
-  return { ok: true };
-}
-
-/* Aliases kept for backwards compatibility */
-export { getSheetsClient as getSheets, getSheetsClient as googleSheets, getSheetsClient as getGoogleSheets };
+export default {
+  getSheetsClient,
+  getAllUsers,
+  getUserByEmail,
+  getUserById,
+  verifyPassword,
+  upsertUser,
+};
