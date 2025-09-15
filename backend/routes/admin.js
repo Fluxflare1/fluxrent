@@ -1,6 +1,8 @@
 import express from "express";
 import { google } from "googleapis";
 import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
+import { sendCredentialsEmail } from "../utils/email.js";
 
 const router = express.Router();
 
@@ -12,27 +14,35 @@ const sheets = google.sheets({ version: "v4", auth });
 
 const SPREADSHEET_ID = "1amy14SwIt0zv-IPWEE9x44sw6wqTydUtqxgdz_R8ihk";
 
+function generatePassword() {
+  return crypto.randomBytes(4).toString("hex");
+}
+
 router.post("/approve-user", async (req, res) => {
   try {
-    const { email } = req.body; // Identify user by email
+    const { email } = req.body;
     const uid = uuidv4();
+    const password = generatePassword();
 
     // Fetch rows
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Sheet1!A:F",
+      range: "Sheet1!A:G",
     });
 
     const rows = result.data.values || [];
     const header = rows[0];
     const emailIndex = header.indexOf("Email");
-    const statusIndex = header.indexOf("Status");
-    const uidIndex = header.indexOf("UID");
+    const nameIndex = header.indexOf("Name");
+    const roleIndex = header.indexOf("Role");
 
     let rowToUpdate = -1;
+    let userRow = null;
+
     rows.forEach((row, idx) => {
       if (row[emailIndex] === email && rowToUpdate === -1) {
         rowToUpdate = idx;
+        userRow = row;
       }
     });
 
@@ -40,17 +50,30 @@ router.post("/approve-user", async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
+    const name = userRow[nameIndex];
+    const role = userRow[roleIndex];
+    const username = email;
+
     // Update sheet
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `Sheet1!A${rowToUpdate + 1}:F${rowToUpdate + 1}`,
+      range: `Sheet1!A${rowToUpdate + 1}:G${rowToUpdate + 1}`,
       valueInputOption: "USER_ENTERED",
       requestBody: {
-        values: [[uid, rows[rowToUpdate][1], rows[rowToUpdate][2], rows[rowToUpdate][3], rows[rowToUpdate][4], "approved"]],
+        values: [[uid, name, email, userRow[3], role, "approved", username]],
       },
     });
 
-    res.json({ success: true, message: "User approved", uid });
+    // Send credentials via email
+    await sendCredentialsEmail({
+      to: email,
+      name,
+      username,
+      password,
+      role,
+    });
+
+    res.json({ success: true, message: "User approved. Credentials emailed." });
   } catch (err) {
     console.error("❌ Approval error:", err);
     res.status(500).json({ success: false, error: err.message });
