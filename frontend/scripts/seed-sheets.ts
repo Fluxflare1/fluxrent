@@ -1,82 +1,36 @@
-// frontend/scripts/reset-seed.ts
-import { google } from "googleapis";
-import bcrypt from "bcryptjs";
-import path from "path";
-import fs from "fs";
+// frontend/scripts/seed-users.ts
+import { addUser, ensureUsersSheet, clearUsersSheet, getUserByEmail } from "../lib/googleSheets";
 
-async function resetSeed() {
-  const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
-  const keyFile = path.join(process.cwd(), "service-account.json");
+async function main() {
+  // Allow optional reset by suffix: if passed `--reset` we clear users sheet first
+  const args = process.argv.slice(2);
+  const doReset = args.includes("--reset");
 
-  if (!fs.existsSync(keyFile)) {
-    console.error("❌ Missing service-account.json");
-    process.exit(1);
+  await ensureUsersSheet();
+  if (doReset) {
+    console.log("Clearing Users sheet...");
+    await clearUsersSheet();
   }
 
-  const auth = new google.auth.GoogleAuth({
-    keyFile,
-    scopes: SCOPES,
-  });
-
-  const sheets = google.sheets({ version: "v4", auth });
-
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-  if (!spreadsheetId) {
-    console.error("❌ Missing GOOGLE_SHEET_ID env variable");
-    process.exit(1);
+  // helper to create if not exists
+  async function ensureUser(email: string, name: string, role: string, password: string) {
+    const existing = await getUserByEmail(email);
+    if (existing) {
+      console.log(`User ${email} exists — skipping`);
+      return;
+    }
+    await addUser({ email, name, role, password, status: "approved" });
+    console.log(`Seeded ${role} - ${email}`);
   }
 
-  // Clear the Users sheet
-  await sheets.spreadsheets.values.clear({
-    spreadsheetId,
-    range: "Users",
-  });
+  await ensureUser("admin@example.com", "Platform Admin", "admin", "admin123");
+  await ensureUser("manager@example.com", "Property Manager", "manager", "manager123");
+  await ensureUser("tenant@example.com", "Tenant User", "tenant", "tenant123");
 
-  // Re-insert header row
-  await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range: "Users!A1:D1",
-    valueInputOption: "RAW",
-    requestBody: {
-      values: [["Email", "Password", "Role", "UID"]],
-    },
-  });
-
-  // Insert 3 test users
-  const users = [
-    {
-      email: "admin@yourdomain.com",
-      password: await bcrypt.hash("Admin@1234", 10),
-      role: "admin",
-      uid: "U1",
-    },
-    {
-      email: "propertyadmin@yourdomain.com",
-      password: await bcrypt.hash("PropertyAdmin@1234", 10),
-      role: "property_admin",
-      uid: "U2",
-    },
-    {
-      email: "tenant@yourdomain.com",
-      password: await bcrypt.hash("Tenant@1234", 10),
-      role: "tenant",
-      uid: "U3",
-    },
-  ];
-
-  await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range: "Users!A2",
-    valueInputOption: "RAW",
-    requestBody: {
-      values: users.map((u) => [u.email, u.password, u.role, u.uid]),
-    },
-  });
-
-  console.log("✅ Users reset + seeded:", users.map((u) => u.email));
+  console.log("Seeding complete.");
 }
 
-resetSeed().catch((err) => {
-  console.error("❌ Error resetting data:", err);
+main().catch((err) => {
+  console.error(err);
   process.exit(1);
 });
