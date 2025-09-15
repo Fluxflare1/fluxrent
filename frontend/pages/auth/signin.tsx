@@ -1,79 +1,78 @@
 // frontend/pages/auth/signin.tsx
-import { useState } from "react";
+"use client";
+
+import React, { useState } from "react";
 import { getCsrfToken, signIn } from "next-auth/react";
-import { GetServerSideProps } from "next";
+import { useRouter } from "next/router";
 
-interface Props {
-  csrfToken: string;
-}
-
-export default function SignIn({ csrfToken }: Props) {
+export default function SignInPage({ csrfToken }: { csrfToken?: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const result = await signIn("credentials", {
-      redirect: true,
+    setLoading(true);
+    const res = await signIn("credentials", {
+      redirect: false,
       email,
       password,
-      callbackUrl: "/dashboard",
     });
-    console.log("Login result:", result);
-  };
+    setLoading(false);
+    if (res?.ok) {
+      // role-based redirect handled in server callback? fallback to dashboard
+      // Try to fetch session role client-side and redirect
+      router.push("/dashboard");
+    } else {
+      alert("Invalid credentials");
+    }
+  }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <form
-        method="post"
-        onSubmit={handleSubmit}
-        className="bg-white shadow-md rounded px-8 pt-6 pb-8 w-96"
-      >
-        <input name="csrfToken" type="hidden" defaultValue={csrfToken} />
-        <h1 className="text-xl font-bold mb-4">Sign In</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+      <div className="w-full max-w-md bg-white rounded-xl p-6 shadow-soft">
+        <h1 className="text-2xl font-semibold mb-4">Sign in</h1>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input name="csrfToken" type="hidden" defaultValue={csrfToken} />
+          <label className="block">
+            <span className="text-sm">Email</span>
+            <input
+              className="w-full border rounded px-3 py-2"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm">Password</span>
+            <input
+              className="w-full border rounded px-3 py-2"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </label>
 
-        <label className="block mb-2 text-sm">Email</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full border rounded p-2 mb-4"
-          required
-        />
-
-        <label className="block mb-2 text-sm">Password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full border rounded p-2 mb-4"
-          required
-        />
-
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-        >
-          Sign In
-        </button>
-      </form>
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[var(--color-primary)] text-white rounded px-4 py-2"
+            >
+              {loading ? "Signing in..." : "Sign in"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  return {
-    props: {
-      csrfToken: await getCsrfToken(context),
-    },
-  };
-};
-
-
-
-const result = await signIn("credentials", {
-  redirect: true,
-  email,
-  password,
-  callbackUrl: "/dashboard", // ✅ always redirect here
-});
+// server-side fetch for csrfToken if using pages with getServerSideProps:
+export async function getServerSideProps(context: any) {
+  const csrfToken = await getCsrfToken(context);
+  return { props: { csrfToken } };
+}
