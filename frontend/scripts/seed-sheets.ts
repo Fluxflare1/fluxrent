@@ -1,36 +1,64 @@
-// frontend/scripts/seed-users.ts
-import { addUser, ensureUsersSheet, clearUsersSheet, getUserByEmail } from "../lib/googleSheets";
+/**
+ * Script to seed Google Sheets with required headers
+ *
+ * Usage:
+ *   npx ts-node scripts/seed-sheets.ts
+ */
 
-async function main() {
-  // Allow optional reset by suffix: if passed `--reset` we clear users sheet first
-  const args = process.argv.slice(2);
-  const doReset = args.includes("--reset");
+import { google } from "googleapis";
+import path from "path";
+import fs from "fs";
 
-  await ensureUsersSheet();
-  if (doReset) {
-    console.log("Clearing Users sheet...");
-    await clearUsersSheet();
+const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
+const KEYFILE = path.join(process.cwd(), "credentials.json"); // Service Account JSON
+
+// Replace with your Google Sheet IDs
+const SHEETS = {
+  users: "YOUR_USERS_SHEET_ID",
+  tenants: "YOUR_TENANTS_SHEET_ID",
+  properties: "YOUR_PROPERTIES_SHEET_ID",
+};
+
+// Define headers for each sheet
+const HEADERS: Record<string, string[]> = {
+  users: ["id", "name", "email", "password", "role", "createdAt"],
+  tenants: ["id", "name", "email", "phone", "propertyId", "leaseStart", "leaseEnd"],
+  properties: ["id", "name", "address", "units", "managerId"],
+};
+
+async function seed() {
+  // Load Google Auth
+  const auth = new google.auth.GoogleAuth({
+    keyFile: KEYFILE,
+    scopes: SCOPES,
+  });
+
+  const sheets = google.sheets({ version: "v4", auth });
+
+  for (const [sheetName, spreadsheetId] of Object.entries(SHEETS)) {
+    console.log(`Seeding sheet: ${sheetName} (${spreadsheetId})`);
+
+    // Clear sheet first
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId,
+      range: `${sheetName}!A:Z`,
+    });
+
+    // Insert headers
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${sheetName}!A1`,
+      valueInputOption: "RAW",
+      requestBody: {
+        values: [HEADERS[sheetName]],
+      },
+    });
+
+    console.log(`✅ ${sheetName} sheet seeded with headers.`);
   }
-
-  // helper to create if not exists
-  async function ensureUser(email: string, name: string, role: string, password: string) {
-    const existing = await getUserByEmail(email);
-    if (existing) {
-      console.log(`User ${email} exists — skipping`);
-      return;
-    }
-    await addUser({ email, name, role, password, status: "approved" });
-    console.log(`Seeded ${role} - ${email}`);
-  }
-
-  await ensureUser("admin@example.com", "Platform Admin", "admin", "admin123");
-  await ensureUser("manager@example.com", "Property Manager", "manager", "manager123");
-  await ensureUser("tenant@example.com", "Tenant User", "tenant", "tenant123");
-
-  console.log("Seeding complete.");
 }
 
-main().catch((err) => {
-  console.error(err);
+seed().catch((err) => {
+  console.error("❌ Error seeding sheets:", err);
   process.exit(1);
 });
