@@ -7,7 +7,7 @@ export default function LoginPage() {
         <p className="text-slate-600 mb-8">For the MVP, admins create property manager accounts. Property managers contact their platform admin to get started.</p>
 
         <div className="flex justify-center gap-4">
-          <a href="http://localhost:3000/auth/signin?subject=Request%20Access" className="px-6 py-2 bg-yellow-400 text-blue-900 rounded font-semibold">
+          <a href="http://localhost:3000/auth/signup?subject=Request%20Access" className="px-6 py-2 bg-yellow-400 text-blue-900 rounded font-semibold">
             Request Access
           </a>
           <a href="#" className="px-6 py-2 border rounded">Sign in (placeholder)</a>
