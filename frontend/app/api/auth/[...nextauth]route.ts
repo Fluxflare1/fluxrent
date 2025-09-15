@@ -1,9 +1,10 @@
 // frontend/app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getUserByEmail, verifyPassword } from "@/lib/googleSheets";
+import { NextAuthOptions } from "next-auth";
+import { verifyPassword, getUserByEmail, getUserById } from "@/lib/googleSheets";
 
-const handler = NextAuth({
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -13,37 +14,52 @@ const handler = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        const user = await getUserByEmail(credentials.email);
+        const user = await verifyPassword(credentials.email, credentials.password);
         if (!user) return null;
-        if (user.status !== "approved") return null;
-        const ok = await verifyPassword(credentials.email, credentials.password);
-        if (!ok) return null;
-        // NextAuth wants at least an `id` and `name`/`email`
-        return { id: user.id, name: user.name || user.email, email: user.email, role: user.role || "tenant" };
+        // only return safe fields
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role || "tenant",
+        } as any;
       },
     }),
   ],
   session: {
     strategy: "jwt",
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+  },
+  jwt: {
+    // default from NEXTAUTH_SECRET
   },
   callbacks: {
     async jwt({ token, user }) {
+      // on sign-in, attach role and id
       if (user) {
-        // user available at first sign-in
-        token.role = (user as any).role || token.role;
+        token.role = (user as any).role || "tenant";
+        token.id = (user as any).id;
       }
       return token;
     },
     async session({ session, token }) {
-      (session as any).user = (session as any).user || {};
-      (session as any).user.role = token.role || "tenant";
+      if (token && session.user) {
+        (session.user as any).role = token.role;
+        (session.user as any).id = token.id;
+      }
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      // after login redirect based on role (client-side fallback too)
+      // don't allow external redirects
+      return baseUrl;
     },
   },
   pages: {
-    signIn: "/auth/signin",
+    signIn: "/auth/signin", // route we will create
   },
   secret: process.env.NEXTAUTH_SECRET,
-});
+};
 
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
