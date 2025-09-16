@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# backend/docker-start.sh
+set -e
+
+# load .env if present
+if [ -f .env ]; then
+  export $(grep -v '^#' .env | xargs)
+fi
+
+# wait for Postgres
+echo "Waiting for Postgres..."
+until nc -z -v -w30 ${DATABASE_HOST:-db} ${DATABASE_PORT:-5432}; do
+  echo "Waiting for database..."
+  sleep 1
+done
+
+echo "Running migrations..."
+python manage.py migrate --noinput
+
+# create seed users automatically if not present
+echo "Running seed command..."
+python manage.py seed || true
+
+# start server (development). For production replace with gunicorn invocation
+echo "Starting Django server..."
+gunicorn fluxrent.wsgi:application --bind 0.0.0.0:8000 --workers 3
