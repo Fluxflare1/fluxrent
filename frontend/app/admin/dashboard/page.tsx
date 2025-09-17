@@ -47,3 +47,50 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+
+
+"use client";
+
+import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
+
+export default function AdminDashboard() {
+  const [stats, setStats] = useState<any>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    apiFetch("/admin/health/")
+      .then(setStats)
+      .catch((err) => setError(err.message));
+  }, []);
+
+  if (error) return <p className="text-red-500">{error}</p>;
+  if (!stats) return <p>Loading...</p>;
+
+  return (
+    <div>
+      <h1 className="text-xl font-bold mb-4">Admin Dashboard</h1>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="p-4 border rounded shadow">
+          <h2 className="font-semibold">Total Users</h2>
+          <p>{stats.users}</p>
+        </div>
+        <div className="p-4 border rounded shadow">
+          <h2 className="font-semibold">Active Users</h2>
+          <p>{stats.active_users}</p>
+        </div>
+        <div className="p-4 border rounded shadow">
+          <h2 className="font-semibold">Roles</h2>
+          <ul>
+            {Object.entries(stats.roles).map(([role, count]) => (
+              <li key={role}>
+                {role}: {count}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
