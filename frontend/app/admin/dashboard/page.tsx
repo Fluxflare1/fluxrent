@@ -1,8 +1,28 @@
+// frontend/app/admin/dashboard/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 import { apiFetch } from "@/lib/api"; // Your Django API fetch helper
 
 // Types for our data - Strongly recommended for TypeScript
@@ -26,7 +46,14 @@ interface PlatformStats {
 }
 
 // Colors for the pie chart
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d'];
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#8884D8",
+  "#82ca9d",
+];
 
 export default function PlatformAdminDashboard() {
   const [data, setData] = useState<PlatformStats | null>(null);
@@ -37,6 +64,7 @@ export default function PlatformAdminDashboard() {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
+        // apiFetch should handle base URL / auth headers etc.
         const result = await apiFetch("/api/platform-admin/dashboard/");
         setData(result);
       } catch (err) {
@@ -54,7 +82,7 @@ export default function PlatformAdminDashboard() {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
           <p className="mt-4 text-lg text-muted-foreground">Loading platform analytics...</p>
         </div>
       </div>
@@ -70,8 +98,8 @@ export default function PlatformAdminDashboard() {
               <div className="mx-auto h-12 w-12 text-destructive mb-4">⚠️</div>
               <h2 className="text-lg font-semibold text-destructive">Failed to Load Dashboard</h2>
               <p className="text-muted-foreground mt-2">{error}</p>
-              <button 
-                onClick={() => window.location.reload()} 
+              <button
+                onClick={() => window.location.reload()}
                 className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
               >
                 Retry
@@ -84,8 +112,29 @@ export default function PlatformAdminDashboard() {
   }
 
   if (!data) {
-    return null; // Should not happen due to loading/error states, but for type safety
+    // no data but not loading: show safe fallback
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">No dashboard data available.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
+
+  // helpers
+  const safeNumber = (n?: number) => (typeof n === "number" && !Number.isNaN(n) ? n : 0);
+
+  const lastRevenue = data.revenue_trend && data.revenue_trend.length > 0
+    ? data.revenue_trend[data.revenue_trend.length - 1].revenue
+    : 0;
+  const prevRevenue = data.revenue_trend && data.revenue_trend.length > 1
+    ? data.revenue_trend[data.revenue_trend.length - 2].revenue
+    : 0;
+  const revenueDeltaPct =
+    prevRevenue > 0 ? Math.round(((lastRevenue - prevRevenue) / prevRevenue) * 100) : 0;
 
   return (
     <div className="p-6 space-y-6">
@@ -107,9 +156,9 @@ export default function PlatformAdminDashboard() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.total_users.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{safeNumber(data.total_users).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              {data.active_users} active in last 30 days
+              {safeNumber(data.active_users)} active in last 30 days
             </p>
           </CardContent>
         </Card>
@@ -124,9 +173,9 @@ export default function PlatformAdminDashboard() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.total_properties.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{safeNumber(data.total_properties).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              {data.occupied_properties} occupied ({data.total_properties ? Math.round((data.occupied_properties / data.total_properties) * 100) : 0}%)
+              {safeNumber(data.occupied_properties)} occupied ({data.total_properties ? Math.round((data.occupied_properties / data.total_properties) * 100) : 0}%)
             </p>
           </CardContent>
         </Card>
@@ -139,9 +188,9 @@ export default function PlatformAdminDashboard() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${data.monthly_recurring_revenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">${safeNumber(data.monthly_recurring_revenue).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              +{data.revenue_trend.length > 1 ? Math.round(((data.revenue_trend[data.revenue_trend.length - 1].revenue - data.revenue_trend[data.revenue_trend.length - 2].revenue) / data.revenue_trend[data.revenue_trend.length - 2].revenue) * 100) : 0}% from last month
+              +{revenueDeltaPct}% from last month
             </p>
           </CardContent>
         </Card>
@@ -154,10 +203,8 @@ export default function PlatformAdminDashboard() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${data.total_revenue.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              All-time platform earnings
-            </p>
+            <div className="text-2xl font-bold">${safeNumber(data.total_revenue).toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">All-time platform earnings</p>
           </CardContent>
         </Card>
       </div>
@@ -175,7 +222,7 @@ export default function PlatformAdminDashboard() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`$${value}`, "Revenue"]} />
+                <Tooltip formatter={(value: any) => [`$${value}`, "Revenue"]} />
                 <Legend />
                 <Line type="monotone" dataKey="revenue" stroke="#8884d8" activeDot={{ r: 8 }} />
               </LineChart>
@@ -199,13 +246,16 @@ export default function PlatformAdminDashboard() {
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  // typed label callback to satisfy TS
+                  label={({ name, percent }: { name: string; percent: number | undefined }) =>
+                    `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
+                  }
                 >
                   {data.role_distribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value, name) => [`${value} users`, name]} />
+                <Tooltip formatter={(value: any, name: any) => [`${value} users`, name]} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -225,7 +275,7 @@ export default function PlatformAdminDashboard() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`${value}`, "Total Users"]} />
+                <Tooltip formatter={(value: any) => [`${value}`, "Total Users"]} />
                 <Legend />
                 <Bar dataKey="count" fill="#82ca9d" />
               </BarChart>
