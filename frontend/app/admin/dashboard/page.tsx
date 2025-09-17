@@ -1,95 +1,264 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import { apiFetch } from "@/lib/api"; // Your Django API fetch helper
 
-export default function AdminDashboard() {
-  const [stats, setStats] = useState<any>(null);
+// Types for our data - Strongly recommended for TypeScript
+interface PlatformStats {
+  total_users: number;
+  active_users: number;
+  total_properties: number;
+  occupied_properties: number;
+  monthly_recurring_revenue: number;
+  total_revenue: number;
+  user_evolution: { date: string; count: number }[];
+  revenue_trend: { month: string; revenue: number }[];
+  role_distribution: { name: string; value: number }[];
+  recent_activity: {
+    id: number;
+    user_name: string;
+    action: string;
+    target: string;
+    timestamp: string;
+  }[];
+}
+
+// Colors for the pie chart
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d'];
+
+export default function PlatformAdminDashboard() {
+  const [data, setData] = useState<PlatformStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/admin/stats")
-      .then((res) => res.json())
-      .then(setStats);
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const result = await apiFetch("/api/platform-admin/dashboard/");
+        setData(result);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An unknown error occurred");
+        console.error("Failed to fetch dashboard data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
   }, []);
 
-  if (!stats) return <p>Loading dashboard...</p>;
+  if (loading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-lg text-muted-foreground">Loading platform analytics...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const revenueData = stats.revenueTrend.map((val: number, idx: number) => ({
-    month: `M${idx + 1}`,
-    revenue: val,
-  }));
+  if (error) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Card className="border-destructive">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="mx-auto h-12 w-12 text-destructive mb-4">⚠️</div>
+              <h2 className="text-lg font-semibold text-destructive">Failed to Load Dashboard</h2>
+              <p className="text-muted-foreground mt-2">{error}</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Retry
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return null; // Should not happen due to loading/error states, but for type safety
+  }
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-
-      <div className="grid grid-cols-4 gap-6">
-        <Card><CardContent><p className="text-lg">Tenants</p><p className="text-2xl font-bold">{stats.totalTenants}</p></CardContent></Card>
-        <Card><CardContent><p className="text-lg">Properties</p><p className="text-2xl font-bold">{stats.totalProperties}</p></CardContent></Card>
-        <Card><CardContent><p className="text-lg">Revenue</p><p className="text-2xl font-bold">${stats.monthlyRevenue}</p></CardContent></Card>
-        <Card><CardContent><p className="text-lg">Overdue</p><p className="text-2xl font-bold">{stats.overduePayments}</p></CardContent></Card>
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Platform Administration</h1>
+        <p className="text-muted-foreground">Overview of your multi-tenant property management ecosystem.</p>
       </div>
 
-      <Card>
-        <CardContent>
-          <h2 className="font-semibold mb-4">Revenue Trend</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={revenueData}>
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="revenue" fill="#4a6fa5" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+      {/* Key Metrics Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-muted-foreground">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{data.total_users.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              {data.active_users} active in last 30 days
+            </p>
+          </CardContent>
+        </Card>
 
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Properties</CardTitle>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-muted-foreground">
+              <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z" />
+              <path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9" />
+              <path d="M9 13h6" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{data.total_properties.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              {data.occupied_properties} occupied ({data.total_properties ? Math.round((data.occupied_properties / data.total_properties) * 100) : 0}%)
+            </p>
+          </CardContent>
+        </Card>
 
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">MRR</CardTitle>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-muted-foreground">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${data.monthly_recurring_revenue.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              +{data.revenue_trend.length > 1 ? Math.round(((data.revenue_trend[data.revenue_trend.length - 1].revenue - data.revenue_trend[data.revenue_trend.length - 2].revenue) / data.revenue_trend[data.revenue_trend.length - 2].revenue) * 100) : 0}% from last month
+            </p>
+          </CardContent>
+        </Card>
 
-"use client";
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-muted-foreground">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${data.total_revenue.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              All-time platform earnings
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
-import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+      {/* Charts Section */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        {/* Revenue Trend Chart */}
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Revenue Trend (Last 6 Months)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={data.revenue_trend}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(value) => [`$${value}`, "Revenue"]} />
+                <Legend />
+                <Line type="monotone" dataKey="revenue" stroke="#8884d8" activeDot={{ r: 8 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-export default function AdminDashboard() {
-  const [stats, setStats] = useState<any>(null);
-  const [error, setError] = useState("");
+        {/* User Role Distribution */}
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>User Role Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={data.role_distribution}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                >
+                  {data.role_distribution.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value, name) => [`${value} users`, name]} />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
 
-  useEffect(() => {
-    apiFetch("/admin/health/")
-      .then(setStats)
-      .catch((err) => setError(err.message));
-  }, []);
+      {/* User Growth & Recent Activity */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        {/* User Evolution Chart */}
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>User Growth</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={data.user_evolution}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip formatter={(value) => [`${value}`, "Total Users"]} />
+                <Legend />
+                <Bar dataKey="count" fill="#82ca9d" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-  if (error) return <p className="text-red-500">{error}</p>;
-  if (!stats) return <p>Loading...</p>;
-
-  return (
-    <div>
-      <h1 className="text-xl font-bold mb-4">Admin Dashboard</h1>
-      <div className="grid grid-cols-3 gap-4">
-        <div className="p-4 border rounded shadow">
-          <h2 className="font-semibold">Total Users</h2>
-          <p>{stats.users}</p>
-        </div>
-        <div className="p-4 border rounded shadow">
-          <h2 className="font-semibold">Active Users</h2>
-          <p>{stats.active_users}</p>
-        </div>
-        <div className="p-4 border rounded shadow">
-          <h2 className="font-semibold">Roles</h2>
-          <ul>
-            {Object.entries(stats.roles).map(([role, count]) => (
-              <li key={role}>
-                {role}: {count}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Recent Activity */}
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Recent Platform Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {data.recent_activity.slice(0, 5).map((activity) => (
+                <div key={activity.id} className="flex items-start space-x-4">
+                  <div className="flex-shrink-0 rounded-full bg-primary/10 p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-primary">
+                      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium leading-none">{activity.user_name}</p>
+                    <p className="text-sm text-muted-foreground">{activity.action} {activity.target}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(activity.timestamp).toLocaleDateString()} at {new Date(activity.timestamp).toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
