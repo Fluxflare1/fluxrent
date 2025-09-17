@@ -12,6 +12,13 @@ router.register(r"agreements", v.AgreementViewSet, basename="agreements")
 router.register(r"prepayments", v.PrepaymentViewSet, basename="prepayments")
 router.register(r"platform-admin/dashboard", v.DashboardViewSet, basename="dashboard")
 
+# New
+router.register(r"properties", v.PropertyViewSet, basename="properties")
+router.register(r"apartments", v.ApartmentViewSet, basename="apartments")
+router.register(r"utilities", v.UtilityViewSet, basename="utilities")
+router.register(r"templates", v.TemplateViewSet, basename="templates")
+router.register(r"notifications", v.NotificationViewSet, basename="notifications")
+
 
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),
@@ -44,3 +51,4 @@ urlpatterns = [
 
     path("api/", include(router.urls)),
 ]
+
