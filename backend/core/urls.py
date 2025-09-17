@@ -1,6 +1,17 @@
 # backend/core/urls.py
-from django.urls import path
+from django.urls import path, include
 from .views import RegisterView, LoginView, mock_api_views as mock
+from rest_framework.routers import DefaultRouter
+from .views import mock_viewsets as v
+
+router = DefaultRouter()
+router.register(r"users", v.UserViewSet, basename="users")
+router.register(r"tenants", v.TenantViewSet, basename="tenants")
+router.register(r"bills", v.BillViewSet, basename="bills")
+router.register(r"agreements", v.AgreementViewSet, basename="agreements")
+router.register(r"prepayments", v.PrepaymentViewSet, basename="prepayments")
+router.register(r"platform-admin/dashboard", v.DashboardViewSet, basename="dashboard")
+
 
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),
@@ -30,4 +41,6 @@ urlpatterns = [
 
     # Dashboard
     path("api/platform-admin/dashboard/", mock.dashboard_stats),
+
+    path("api/", include(router.urls)),
 ]
