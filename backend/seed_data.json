@@ -1,0 +1,41 @@
+[
+  {
+    "model": "core.user",
+    "pk": 1,
+    "fields": {
+      "uid": "admin123uid",
+      "email": "admin@system.com",
+      "password": "pbkdf2_sha256$870000$X0$eP4t7v8K0qA...",  
+      "role": "ADMIN",
+      "status": "ACTIVE",
+      "is_superuser": true,
+      "is_staff": true
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 2,
+    "fields": {
+      "uid": "manager123uid",
+      "email": "manager@test.com",
+      "password": "pbkdf2_sha256$870000$X0$eP4t7v8K0qA...",
+      "role": "MANAGER",
+      "status": "ACTIVE",
+      "is_superuser": false,
+      "is_staff": true
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 3,
+    "fields": {
+      "uid": "tenant123uid",
+      "email": "tenant@test.com",
+      "password": "pbkdf2_sha256$870000$X0$eP4t7v8K0qA...",
+      "role": "TENANT",
+      "status": "ACTIVE",
+      "is_superuser": false,
+      "is_staff": false
+    }
+  }
+]
