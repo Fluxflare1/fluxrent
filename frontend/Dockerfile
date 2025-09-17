@@ -8,11 +8,11 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # Install dependencies
-COPY frontend/package*.json ./
+COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
 # Copy source
-COPY frontend/ .
+COPY . .
 
 # Build Next.js app
 RUN npm run build
@@ -21,7 +21,6 @@ RUN npm run build
 FROM node:18-alpine AS runner
 
 WORKDIR /app
-
 ENV NODE_ENV=production
 
 # Copy only necessary files from builder
