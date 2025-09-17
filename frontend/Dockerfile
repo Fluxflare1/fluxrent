@@ -2,13 +2,13 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install dependencies first
 COPY package*.json ./
 RUN npm install --omit=dev
 
-# Copy frontend source
 COPY . .
 
-EXPOSE 3000
+# Build Next.js app
+RUN npm run build
 
-CMD ["npm", "run", "start"]
+# Start in production
+CMD ["npm", "start"]
