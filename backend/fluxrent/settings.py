@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import dj_database_url
 from datetime import timedelta
+from core.settings import *
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
