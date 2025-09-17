@@ -1,152 +1,101 @@
-import axios from "axios";
+import { apiFetch } from "./api";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-
-async function apiGet(path: string) {
-  const res = await axios.get(`${API_BASE}${path}`);
-  return res.data;
-}
-
-async function apiPost(path: string, data: any) {
-  const res = await axios.post(`${API_BASE}${path}`, data);
-  return res.data;
-}
-
-/**
- * Legacy compatibility exports
- * (so existing route.ts files don’t break during migration)
- */
-export const googleSheets = {}; // placeholder
-export const getGoogleSheets = async () => ({});
-export const getSheets = async () => ({});
-
-/**
- * === Properties ===
- */
+// === Properties ===
 export async function getProperties() {
-  return apiGet("/properties/");
+  return apiFetch("/api/properties/");
 }
 export async function addProperty(data: any) {
-  return apiPost("/properties/", data);
+  return apiFetch("/api/properties/", { method: "POST", body: JSON.stringify(data) });
 }
 
-/**
- * === Apartments ===
- */
+// === Apartments ===
 export async function getApartments() {
-  return apiGet("/apartments/");
+  return apiFetch("/api/apartments/");
 }
 export async function addApartment(data: any) {
-  return apiPost("/apartments/", data);
-}
-export async function assignTenantToApartment(data: any) {
-  return { success: true, data }; // TODO: wire later
+  return apiFetch("/api/apartments/", { method: "POST", body: JSON.stringify(data) });
 }
 
-/**
- * === Utilities ===
- */
-export async function getUtilities() {
-  return apiGet("/utilities/");
-}
-export async function addUtility(data: any) {
-  return apiPost("/utilities/", data);
-}
-
-/**
- * === Templates ===
- */
-export async function getTemplates() {
-  return apiGet("/templates/");
-}
-export async function addTemplate(data: any) {
-  return apiPost("/templates/", data);
-}
-
-/**
- * === Notifications ===
- */
-export async function getNotifications() {
-  return apiGet("/notifications/");
-}
-export async function logNotification(data: any) {
-  return apiPost("/notifications/", data);
-}
-
-/**
- * === Bills ===
- */
+// === Bills ===
 export async function getBills() {
-  return apiGet("/bills/");
+  return apiFetch("/api/bills/");
 }
 export async function addBill(data: any) {
-  return apiPost("/bills/", data);
+  return apiFetch("/api/bills/", { method: "POST", body: JSON.stringify(data) });
 }
 export async function getBillById(id: string) {
-  return apiGet(`/bills/${id}/`);
+  return apiFetch(`/api/bills/${id}/`);
 }
-export async function addBillPayment(data: any) {
-  return apiPost("/bills/payments/", data);
-}
-
-/**
- * === Agreements ===
- */
-export async function getAgreements() {
-  return apiGet("/agreements/");
-}
-export async function addAgreement(data: any) {
-  return apiPost("/agreements/", data);
-}
-export async function updateTenantKyc(data: any) {
-  return { success: true, data }; // TODO
+export async function addBillPayment(id: string, data: any) {
+  return apiFetch(`/api/bills/${id}/pay/`, { method: "POST", body: JSON.stringify(data) });
 }
 
-/**
- * === Rents ===
- */
+// === Rent Schedules ===
 export async function getRentSchedules() {
-  return apiGet("/rents/");
+  return apiFetch("/api/rents/");
 }
 export async function markRentPaid(id: string) {
-  return apiPost(`/rents/${id}/pay/`, {});
-}
-export async function generateMonthlyBillsForProperty(propertyId: string) {
-  return apiPost("/rents/generate/", { propertyId });
+  return apiFetch(`/api/rents/${id}/pay/`, { method: "POST" });
 }
 
-/**
- * === Invoices / Receipts ===
- */
-export async function addInvoiceRow(data: any) {
-  return apiPost("/invoices/", data);
-}
-export async function addReceiptLinkToPayment(paymentId: string, link: string) {
-  return apiPost("/receipts/", { paymentId, link });
-}
-
-/**
- * === Payments ===
- */
+// === Payments ===
 export async function getPayments() {
-  return apiGet("/payments/");
+  return apiFetch("/api/payments/");
 }
 export async function recordPayment(data: any) {
-  return apiPost("/payments/", data);
-}
-export async function recordPaymentFromPaystack(data: any) {
-  return apiPost("/paystack/webhook/", data);
+  return apiFetch("/api/payments/", { method: "POST", body: JSON.stringify(data) });
 }
 
-/**
- * === Users & Tenants ===
- */
+// === Agreements ===
+export async function getAgreements() {
+  return apiFetch("/api/agreements/");
+}
+export async function addAgreement(data: any) {
+  return apiFetch("/api/agreements/", { method: "POST", body: JSON.stringify(data) });
+}
+
+// === Notifications ===
+export async function getNotifications() {
+  return apiFetch("/api/notifications/");
+}
+export async function logNotification(data: any) {
+  return apiFetch("/api/notifications/", { method: "POST", body: JSON.stringify(data) });
+}
+
+// === Utilities ===
+export async function getUtilities() {
+  return apiFetch("/api/utilities/");
+}
+export async function addUtility(data: any) {
+  return apiFetch("/api/utilities/", { method: "POST", body: JSON.stringify(data) });
+}
+
+// === Templates ===
+export async function getTemplates() {
+  return apiFetch("/api/templates/");
+}
+export async function addTemplate(data: any) {
+  return apiFetch("/api/templates/", { method: "POST", body: JSON.stringify(data) });
+}
+
+// === Invoices / Receipts ===
+export async function addInvoiceRow(data: any) {
+  return apiFetch("/api/invoices/", { method: "POST", body: JSON.stringify(data) });
+}
+export async function addReceiptLinkToPayment(paymentId: string, link: string) {
+  return apiFetch(`/api/receipts/generate/`, {
+    method: "POST",
+    body: JSON.stringify({ paymentId, link }),
+  });
+}
+
+// === Users / Tenants ===
 export async function getUsers() {
-  return apiGet("/users/");
+  return apiFetch("/api/users/");
 }
 export async function addUser(data: any) {
-  return apiPost("/users/", data);
+  return apiFetch("/api/users/", { method: "POST", body: JSON.stringify(data) });
 }
 export async function getTenants() {
-  return apiGet("/tenants/");
+  return apiFetch("/api/tenants/");
 }
