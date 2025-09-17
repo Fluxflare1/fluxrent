@@ -21,7 +21,7 @@ export async function getAllUsers(): Promise<UserRow[]> {
 
 export async function getUserByEmail(email: string): Promise<UserRow | null> {
   if (!email) return null;
-  const { data } = await axios.get(`${API_URL}/users/by-email/`, {
+  const { data } = await axios.get(`${API_URL}/users/by_email/`, {
     params: { email },
   });
   return data || null;
@@ -36,12 +36,12 @@ export async function getUserById(id: string): Promise<UserRow | null> {
 export async function verifyPassword(
   email: string,
   password: string
-): Promise<UserRow | null> {
-  const { data } = await axios.post(`${API_URL}/auth/verify-password/`, {
+): Promise<{ success: boolean; email: string }> {
+  const { data } = await axios.post(`${API_URL}/users/verify-password/`, {
     email,
     password,
   });
-  return data || null;
+  return data;
 }
 
 export async function upsertUser(user: Partial<UserRow>) {
@@ -88,7 +88,7 @@ export async function addPrepayment(payload: any) {
   return data;
 }
 
-// --- Dashboard placeholder ---
+// --- Dashboard ---
 export async function getDashboardStats() {
   const { data } = await axios.get(`${API_URL}/platform-admin/dashboard/`);
   return data;
