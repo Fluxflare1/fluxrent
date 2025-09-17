@@ -1,20 +1,12 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-
-export async function apiFetch(path: string, options: any = {}) {
-  const token = localStorage.getItem("access_token");
-
-  const headers = {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-
-  const res = await fetch(`${API_BASE}${path}`, {
+// frontend/lib/api.ts
+export async function apiFetch(endpoint: string, options: RequestInit = {}) {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+    headers: { "Content-Type": "application/json" },
     ...options,
-    headers: { ...headers, ...(options.headers || {}) },
   });
-
-  if (!res.ok) {
-    throw new Error(await res.text());
-  }
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
+
+// Re-export everything from googleSheets so the app has a single import source
+export * from "./googleSheets";
