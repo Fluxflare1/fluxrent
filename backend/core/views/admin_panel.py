@@ -50,5 +50,10 @@ class PlatformHealthViewSet(viewsets.ViewSet):
         return Response({
             "status": "ok",
             "db": "connected",
-            "users": User.objects.count()
+            "users": User.objects.count(),
+            "active_users": User.objects.filter(is_active=True).count(),
+            "roles": {
+                role[0]: User.objects.filter(role=role[0]).count()
+                for role in User.Role.choices
+            }
         })
