@@ -20,7 +20,7 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py loaddata seed_data.json || true &&
-             gunicorn core.wsgi:application --bind 0.0.0.0:4000 --workers 4"
+             gunicorn fluxrent.wsgi:application --bind 0.0.0.0:4000 --workers 4"
     volumes:
       - ./backend:/app
     env_file:
