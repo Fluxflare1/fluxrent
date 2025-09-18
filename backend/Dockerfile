@@ -1,4 +1,3 @@
-# backend/Dockerfile
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -23,7 +22,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 # Copy project
 COPY . /app
 
-# Collect static files (if you use Django staticfiles later)
+# Collect static files
 ENV DJANGO_SETTINGS_MODULE=fluxrent.settings
 RUN python manage.py collectstatic --noinput || true
 
