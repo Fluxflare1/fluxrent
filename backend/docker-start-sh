@@ -1,26 +1,44 @@
 #!/usr/bin/env bash
-# backend/docker-start.sh
 set -e
 
-# load .env if present
-if [ -f .env ]; then
-  export $(grep -v '^#' .env | xargs)
-fi
+# wait for DB to be ready (simple)
+echo "Waiting for database..."
+until python - <<'PY'
+import os, sys, socket, time
+import urllib.parse as u
+# parse DB host/port from DATABASE_URL or fallback to env
+url = os.environ.get("DATABASE_URL")
+if url:
+    try:
+        # postgres://user:pass@host:port/db
+        host = url.split("@")[-1].split(":")[0]
+        port = int(url.split(":")[-1].split("/")[0])
+    except Exception:
+        host = os.environ.get("POSTGRES_HOST", "db")
+        port = int(os.environ.get("POSTGRES_PORT", 5432))
+else:
+    host = os.environ.get("POSTGRES_HOST", "db")
+    port = int(os.environ.get("POSTGRES_PORT", 5432))
 
-# wait for Postgres
-echo "Waiting for Postgres..."
-until nc -z -v -w30 ${DATABASE_HOST:-db} ${DATABASE_PORT:-5432}; do
-  echo "Waiting for database..."
-  sleep 1
-done
+s = socket.socket()
+for i in range(60):
+    try:
+        s.connect((host, port))
+        s.close()
+        sys.exit(0)
+    except Exception:
+        time.sleep(1)
+sys.exit(1)
+PY
 
-echo "Running migrations..."
-python manage.py migrate --noinput
+echo "Apply database migrations..."
+python manage.py makemigrations --noinput || true
+python manage.py migrate --no-input
 
-# create seed users automatically if not present
-echo "Running seed command..."
-python manage.py seed || true
+# load seed via management command (safe to run multiple times)
+echo "Loading seed data..."
+python manage.py load_seed || true
 
-# start server (development). For production replace with gunicorn invocation
-echo "Starting Django server..."
-gunicorn fluxrent.wsgi:application --bind 0.0.0.0:8000 --workers 3
+# Start Gunicorn
+echo "Starting Gunicorn..."
+gunicorn fluxrent.wsgi:application --bind 0.0.0.0:4000 --workers 4 --log-level info
