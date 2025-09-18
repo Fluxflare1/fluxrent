@@ -1,39 +1,30 @@
 # backend/apartments/models.py
 from django.db import models
-from django.utils import timezone
 from django.conf import settings
+from django.utils import timezone
 from properties.models import Property
 
 def pad_seq(num: int, width: int = 4) -> str:
     return str(num).zfill(width)
 
 def generate_apartment_uid(property_uid: str, seq_no: int) -> str:
-    """
-    UID format for apartments per SRS:
-    {property_uid}/APTMT/{SEQ_NO}
-    """
     return f"{property_uid}/APTMT/{pad_seq(seq_no, 4)}"
 
 
 class Apartment(models.Model):
     """
-    Apartment under a Property. Uniquely identified with UID.
+    Apartment under a property. UID is property UID + "/APTMT/{seq}".
     """
     uid = models.CharField(max_length=128, unique=True, editable=False)
-    property = models.ForeignKey(
-        Property,
-        on_delete=models.CASCADE,
-        related_name="apartments"
-    )
-    number = models.CharField(max_length=64)  # e.g., "A1", "101"
+    property = models.ForeignKey(Property, related_name="apartments", on_delete=models.CASCADE)
+    number = models.CharField(max_length=64)
     floor = models.IntegerField(null=True, blank=True)
     bedrooms = models.IntegerField(default=1)
     rent_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     is_occupied = models.BooleanField(default=False)
     tenant = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
+        null=True, blank=True,
         on_delete=models.SET_NULL,
         related_name="rented_apartments"
     )
@@ -51,7 +42,6 @@ class Apartment(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.uid:
-            # Sequence within the property
             base_qs = Apartment.objects.filter(property=self.property)
             last = base_qs.order_by("-id").first()
             next_seq = 1
