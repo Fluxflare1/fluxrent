@@ -2,31 +2,44 @@
 import os
 from pathlib import Path
 import dj_database_url
+import environ
 from datetime import timedelta
 
+# Load environment variables from .env if present
+env = environ.Env(
+    DEBUG=(bool, False),
+)
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "replace-me-in-prod")
+# read .env file, if exists
+environ.Env.read_env(BASE_DIR / ".env")
 
-DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in ("1", "true", "yes")
+SECRET_KEY = env("DJANGO_SECRET_KEY", default="replace-me-in-prod")
+DEBUG = env.bool("DJANGO_DEBUG", default=False)
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-
+# Application definition
 INSTALLED_APPS = [
-    # Django
+    # django
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
-    # Third-party
+    # third party
     "rest_framework",
     "corsheaders",
-
-    # Local
+    # celery beat scheduler optional
+    "django_celery_beat",
+    # local apps
     "users",
+    "properties",
+    "apartments",
+    "bills",
+    "agreements",
+    "notifications",
+    "templates_app",  # named templates_app to avoid name clash with Django templates
 ]
 
 MIDDLEWARE = [
@@ -60,7 +73,7 @@ WSGI_APPLICATION = "fluxrent.wsgi.application"
 ASGI_APPLICATION = "fluxrent.asgi.application"
 
 # Database
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgres://postgres:postgres@db:5432/tenantdb")
+DATABASE_URL = env("DATABASE_URL", default="postgres://postgres:postgres@db:5432/tenantdb")
 DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
 
 # Password validation
@@ -73,7 +86,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+TIME_ZONE = env("DJANGO_TIME_ZONE", default="UTC")
 USE_I18N = True
 USE_TZ = True
 
@@ -94,18 +107,56 @@ REST_FRAMEWORK = {
     ),
 }
 
-from rest_framework_simplejwt.settings import api_settings as jwt_settings
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("JWT_ACCESS_MINUTES", "60"))),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("JWT_REFRESH_DAYS", "7"))),
-    "ROTATE_REFRESH_TOKENS": False,
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env.int("JWT_ACCESS_MINUTES", 60)),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=env.int("JWT_REFRESH_DAYS", 7)),
     "ALGORITHM": "HS256",
-    "SIGNING_KEY": os.environ.get("JWT_SIGNING_KEY", SECRET_KEY),
+    "SIGNING_KEY": env("JWT_SIGNING_KEY", SECRET_KEY),
 }
 
-# CORS (allow frontend origin)
-CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+# CORS
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"])
 
-# Security headers for production (disable in dev if needed)
+# Celery settings
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://redis:6379/0")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=CELERY_BROKER_URL)
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+
+# Sentry (optional)
+SENTRY_DSN = env("SENTRY_DSN", default="")
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[DjangoIntegration()],
+            traces_sample_rate=float(env("SENTRY_TRACES_SAMPLE_RATE", 0.0)),
+            send_default_pii=True,
+            environment=env("SENTRY_ENVIRONMENT", default="development"),
+        )
+    except Exception:
+        # don't break app if Sentry import fails
+        pass
+
+# Logging: structured simple config with Sentry handler if configured
+LOG_LEVEL = env("LOG_LEVEL", default="INFO")
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "root": {"handlers": ["console"], "level": LOG_LEVEL},
+    "loggers": {
+        "django.request": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+    },
+}
+
+# Security
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
