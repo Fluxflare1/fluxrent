@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   db:
     image: postgres:15
@@ -12,10 +14,17 @@ services:
     ports:
       - "5432:5432"
 
+  redis:
+    image: redis:7
+    container_name: tenant_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: tenant_backend
     command: >
       sh -c "python manage.py migrate &&
@@ -27,8 +36,23 @@ services:
       - .env
     depends_on:
       - db
+      - redis
     ports:
       - "4000:4000"
+
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tenant_celery
+    command: celery -A fluxrent.celery:app worker --loglevel=info --concurrency=2
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    depends_on:
+      - backend
+      - redis
 
   frontend:
     build:
