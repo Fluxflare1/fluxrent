@@ -16,3 +16,6 @@ urlpatterns = [
     path("api/notifications/", include("notifications.urls")),
     path("api/templates/", include("templates_app.urls")),
 ]
+
+
+
