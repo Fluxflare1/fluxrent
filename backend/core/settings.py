@@ -5,20 +5,19 @@ import dj_database_url
 import environ
 from datetime import timedelta
 
-# Load environment variables from .env if present
+# Load environment variables
 env = environ.Env(
     DEBUG=(bool, False),
 )
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# read .env file, if exists
 environ.Env.read_env(BASE_DIR / ".env")
 
+# Core
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="replace-me-in-prod")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
-# Application definition
+# Apps
 INSTALLED_APPS = [
     # django
     "django.contrib.admin",
@@ -30,7 +29,6 @@ INSTALLED_APPS = [
     # third party
     "rest_framework",
     "corsheaders",
-    # celery beat scheduler optional
     "django_celery_beat",
     # local apps
     "users",
@@ -39,7 +37,7 @@ INSTALLED_APPS = [
     "bills",
     "agreements",
     "notifications",
-    "templates_app",  # named templates_app to avoid name clash with Django templates
+    "templates_app",  # avoid clash with Django templates
 ]
 
 MIDDLEWARE = [
@@ -60,12 +58,14 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
-        "OPTIONS": {"context_processors": [
-            "django.template.context_processors.debug",
-            "django.template.context_processors.request",
-            "django.contrib.auth.context_processors.auth",
-            "django.contrib.messages.context_processors.messages",
-        ]},
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ]
+        },
     }
 ]
 
@@ -73,15 +73,18 @@ WSGI_APPLICATION = "fluxrent.wsgi.application"
 ASGI_APPLICATION = "fluxrent.asgi.application"
 
 # Database
-DATABASE_URL = env("DATABASE_URL", default="postgres://postgres:postgres@db:5432/tenantdb")
+DATABASE_URL = env(
+    "DATABASE_URL",
+    default="postgres://postgres:postgres@db:5432/tenantdb",
+)
 DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",},
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
 # Internationalization
@@ -90,7 +93,7 @@ TIME_ZONE = env("DJANGO_TIME_ZONE", default="UTC")
 USE_I18N = True
 USE_TZ = True
 
-# Static
+# Static files
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
@@ -108,16 +111,19 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env.int("JWT_ACCESS_MINUTES", 60)),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=env.int("JWT_REFRESH_DAYS", 7)),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env.int("JWT_ACCESS_MINUTES", default=60)),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=env.int("JWT_REFRESH_DAYS", default=7)),
     "ALGORITHM": "HS256",
-    "SIGNING_KEY": env("JWT_SIGNING_KEY", SECRET_KEY),
+    "SIGNING_KEY": env("JWT_SIGNING_KEY", default=SECRET_KEY),
 }
 
 # CORS
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"])
+CORS_ALLOWED_ORIGINS = env.list(
+    "CORS_ALLOWED_ORIGINS",
+    default=["http://localhost:3000"],
+)
 
-# Celery settings
+# Celery
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://redis:6379/0")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=CELERY_BROKER_URL)
 CELERY_ACCEPT_CONTENT = ["json"]
@@ -125,7 +131,7 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 
-# Sentry (optional)
+# Sentry
 SENTRY_DSN = env("SENTRY_DSN", default="")
 if SENTRY_DSN:
     try:
@@ -135,15 +141,14 @@ if SENTRY_DSN:
         sentry_sdk.init(
             dsn=SENTRY_DSN,
             integrations=[DjangoIntegration()],
-            traces_sample_rate=float(env("SENTRY_TRACES_SAMPLE_RATE", 0.0)),
+            traces_sample_rate=float(env("SENTRY_TRACES_SAMPLE_RATE", default=0.0)),
             send_default_pii=True,
             environment=env("SENTRY_ENVIRONMENT", default="development"),
         )
-    except Exception:
-        # don't break app if Sentry import fails
+    except ImportError:
         pass
 
-# Logging: structured simple config with Sentry handler if configured
+# Logging
 LOG_LEVEL = env("LOG_LEVEL", default="INFO")
 LOGGING = {
     "version": 1,
