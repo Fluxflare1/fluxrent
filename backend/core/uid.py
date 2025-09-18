@@ -1,24 +1,18 @@
-# backend/core/uid.py
-import datetime
-import random
-import string
+# backend/core/urls.py
+from django.urls import path, include
+from django.contrib import admin
 
-def _seq(n=5):
-    return str(random.randint(0, 10**n-1)).zfill(n)
+urlpatterns = [
+    path("admin/", admin.site.urls),
 
-def gen_user_uid(prefix="TNT", state_code="00", lga_code="00", seq=None):
-    """
-    Example format: TNT/01/08/00045
-    Caller should provide state_code & lga_code where available.
-    """
-    if seq is None:
-        seq = _seq(5)
-    return f"{prefix}/{state_code}/{lga_code}/{seq}"
+    # Auth & user management
+    path("api/", include("users.urls")),
 
-def gen_property_uid(state_code="00", lga_code="00", street_code="00", house_seq=None):
-    """
-    Example: NGN[STATE]/[LGA]/[STREET]/[HOUSE]
-    """
-    if house_seq is None:
-        house_seq = _seq(4)
-    return f"NGN{state_code}/{lga_code}/{street_code}/{house_seq}"
+    # App endpoints (DRF routers defined inside each app)
+    path("api/properties/", include("properties.urls")),
+    path("api/apartments/", include("apartments.urls")),
+    path("api/bills/", include("bills.urls")),
+    path("api/agreements/", include("agreements.urls")),
+    path("api/notifications/", include("notifications.urls")),
+    path("api/templates/", include("templates_app.urls")),
+]
