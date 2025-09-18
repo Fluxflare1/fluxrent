@@ -16,3 +16,7 @@ urlpatterns = [
     # Add your custom path for the dashboard view
     path("platform-admin/dashboard/", PlatformDashboardView.as_view(), name="platform-dashboard"),
 ]
+
+
+
+
