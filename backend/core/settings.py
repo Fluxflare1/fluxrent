@@ -165,3 +165,6 @@ LOGGING = {
 # Security
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
+
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
