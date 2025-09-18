@@ -27,7 +27,7 @@ ENV DJANGO_SETTINGS_MODULE=fluxrent.settings
 RUN python manage.py collectstatic --noinput || true
 
 # Entrypoint script ensures migrations and seed run at container start
-COPY docker-start.sh /app/docker-start.sh
+COPY docker-start-sh /app/docker-start.sh
 RUN chmod +x /app/docker-start.sh
 
 EXPOSE 4000
