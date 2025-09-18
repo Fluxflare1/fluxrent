@@ -1,31 +1,55 @@
 # backend/users/models.py
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.utils import timezone
-from core.uid import gen_user_uid
+from django.utils.translation import gettext_lazy as _
+from django.core.validators import RegexValidator
 
+from .managers import UserManager
+from .utils_uid import generate_user_uid
+
+class Role(models.TextChoices):
+    TENANT = "tenant", _("Tenant")
+    AGENT = "agent", _("Agent")
+    PROPERTY_MANAGER = "property_manager", _("Property Manager")
+    SUPER_ADMIN = "super_admin", _("Super Admin")
+
+# Custom user model
 class User(AbstractUser):
-    """
-    Custom user model. We subclass AbstractUser to keep Django admin compatibility.
-    Add 'uid', 'role', 'phone', 'dva' (placeholder).
-    """
-    class Role(models.TextChoices):
-        TENANT = "tenant", "Tenant"
-        AGENT = "agent", "Agent"
-        MANAGER = "manager", "Property Manager"
-        SUPER_ADMIN = "super_admin", "Super Admin"
-        ADMIN = "admin", "Admin"
+    username = None  # we will use email as unique identifier
+    email = models.EmailField(_("email address"), unique=True)
 
-    uid = models.CharField(max_length=64, unique=True, blank=True, null=True)
-    role = models.CharField(max_length=32, choices=Role.choices, default=Role.TENANT)
+    # Role field
+    role = models.CharField(
+        max_length=32,
+        choices=Role.choices,
+        default=Role.TENANT,
+        db_index=True,
+    )
+
+    # UID (generated when KYC completes)
+    uid = models.CharField(max_length=64, blank=True, null=True, unique=True)
+
+    # Dedicated Virtual Account (DVA) placeholder (paystack account reference)
+    dva = models.CharField(max_length=128, blank=True, null=True)
+
+    # Optional phone, metadata
     phone = models.CharField(max_length=32, blank=True, null=True)
-    dva = models.CharField(max_length=128, blank=True, null=True)  # dedicated virtual account id
+    metadata = models.JSONField(default=dict, blank=True)
 
-    def save(self, *args, **kwargs):
-        if not self.uid:
-            # Simple generation; in production, sequence should be deterministic & atomic.
-            self.uid = gen_user_uid(prefix="TNT", state_code="00", lga_code="00")
-        super().save(*args, **kwargs)
+    # remove unused fields
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []
+
+    objects = UserManager()
+
+    class Meta:
+        db_table = "auth_user_custom"
+        verbose_name = _("user")
+        verbose_name_plural = _("users")
 
     def __str__(self):
-        return f"{self.email or self.username} ({self.role})"
+        return self.email
+
+    def generate_uid(self, state_code: str = "01", lga_code: str = "01"):
+        self.uid = generate_user_uid(state_code=state_code, lga_code=lga_code)
+        return self.uid
