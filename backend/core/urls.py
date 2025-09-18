@@ -10,6 +10,7 @@ from core.viewsets.apartment import ApartmentViewSet
 from core.viewsets.utility import UtilityViewSet
 from core.viewsets.template import TemplateViewSet
 from core.viewsets.notification import NotificationViewSet
+from core.views.admin_panel import UserAdminViewSet, PlatformHealthViewSet
 
 # Initialize router
 router = DefaultRouter()
@@ -53,3 +54,6 @@ urlpatterns = [
     # Include all router-generated URLs
     path("api/", include(router.urls)),
 ]
+
+
+
