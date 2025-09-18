@@ -1,26 +1,36 @@
-# ============================
-# Backend: Django + Gunicorn
-# ============================
-FROM python:3.11-slim AS backend
+# backend/Dockerfile
+FROM python:3.11-slim
 
-# Set working directory
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    POETRY_VIRTUALENVS_CREATE=false
+
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# OS deps for psycopg2, build, and other typical packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
+    curl \
+    netcat \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy only requirements first (caches)
+COPY requirements.txt /app/requirements.txt
+RUN pip install --upgrade pip setuptools wheel
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy backend source code
-COPY backend/ .
+# Copy project
+COPY . /app
 
-# Expose backend port
+# Collect static files (if you use Django staticfiles later)
+ENV DJANGO_SETTINGS_MODULE=fluxrent.settings
+RUN python manage.py collectstatic --noinput || true
+
+# Entrypoint script ensures migrations and seed run at container start
+COPY docker-start.sh /app/docker-start.sh
+RUN chmod +x /app/docker-start.sh
+
 EXPOSE 4000
 
-# Run Gunicorn
-CMD ["gunicorn", "fluxrent.wsgi:application", "--bind", "0.0.0.0:4000", "--workers", "4"]
+CMD ["/app/docker-start.sh"]
