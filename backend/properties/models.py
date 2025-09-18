@@ -8,8 +8,7 @@ def pad_seq(num: int, width: int = 5) -> str:
 
 def generate_property_uid(state_code: str, lga_code: str, seq_no: int) -> str:
     """
-    UID format for properties per SRS:
-    PRP/[STATE_CODE]/[LGA_CODE]/[SEQ_NO]
+    Format per SRS: PRP/[STATE_CODE]/[LGA_CODE]/[SEQ_NO]
     """
     if not state_code or not lga_code:
         raise ValueError("state_code and lga_code are required for property UID generation")
@@ -18,7 +17,7 @@ def generate_property_uid(state_code: str, lga_code: str, seq_no: int) -> str:
 
 class Property(models.Model):
     """
-    Represents a Property (building / house / lot).
+    Represent a Property (building / house / lot) — has a unique property UID.
     """
     uid = models.CharField(max_length=64, unique=True, editable=False)
     name = models.CharField(max_length=255)
@@ -29,14 +28,13 @@ class Property(models.Model):
     house_no = models.CharField(max_length=100, blank=True)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
+        null=True, blank=True,
         on_delete=models.SET_NULL,
         related_name="owned_properties"
     )
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
-    external_id = models.CharField(max_length=128, blank=True, null=True)  # optional human-friendly reference
+    external_id = models.CharField(max_length=128, blank=True, null=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -48,7 +46,6 @@ class Property(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.uid:
-            # Generate UID using sequence per (state_code + lga_code)
             base_qs = Property.objects.filter(state_code=self.state_code, lga_code=self.lga_code)
             last = base_qs.order_by("-id").first()
             next_seq = 1
