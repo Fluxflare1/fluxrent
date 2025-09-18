@@ -1,3 +1,4 @@
+# backend/core/views/admin_panel.py
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -38,6 +39,11 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         user.is_active = not user.is_active
         user.save()
         return Response({"status": "active toggled", "user": user.email, "is_active": user.is_active})
+
+    # ✅ ADDED FROM SECOND FILE: Simple stats endpoint
+    @action(detail=False, methods=["get"])
+    def stats(self, request):
+        return Response({"total_users": User.objects.count()})
 
 
 class PlatformHealthViewSet(viewsets.ViewSet):
