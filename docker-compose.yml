@@ -3,7 +3,7 @@ version: "3.9"
 services:
   db:
     image: postgres:15
-    container_name: tenant_db
+    container_name: fluxrent_db
     restart: always
     environment:
       POSTGRES_USER: postgres
@@ -16,7 +16,7 @@ services:
 
   redis:
     image: redis:7
-    container_name: tenant_redis
+    container_name: fluxrent_redis
     restart: always
     ports:
       - "6379:6379"
@@ -25,7 +25,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: tenant_backend
+    container_name: fluxrent_backend
     command: >
       sh -c "python manage.py migrate &&
              python manage.py loaddata seed_data.json || true &&
@@ -44,7 +44,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: tenant_celery
+    container_name: fluxrent_celery
     command: celery -A fluxrent.celery:app worker --loglevel=info --concurrency=2
     volumes:
       - ./backend:/app
@@ -58,7 +58,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: tenant_frontend
+    container_name: fluxrent_frontend
     env_file:
       - .env
     depends_on:
