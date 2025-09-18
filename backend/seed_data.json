@@ -1,41 +1,34 @@
-[
-  {
-    "model": "core.user",
-    "pk": 1,
-    "fields": {
-      "uid": "admin123uid",
+{
+  "users": [
+    {
+      "username": "admin",
       "email": "admin@system.com",
-      "password": "pbkdf2_sha256$870000$VgFrY44F3COnmS1SV3z4Cs$O+Ev2kn1O5XAtvX2R6xQ9fmcLJ0/0ZObfNNQ1Fcy4DM=",
-      "role": "ADMIN",
-      "status": "ACTIVE",
-      "is_superuser": true,
-      "is_staff": true
+      "first_name": "System",
+      "last_name": "Admin",
+      "password": "AdminPass!23",
+      "role": "super_admin",
+      "is_staff": true,
+      "is_superuser": true
+    },
+    {
+      "username": "manager",
+      "email": "manager@company.com",
+      "first_name": "Property",
+      "last_name": "Manager",
+      "password": "ManagerPass!23",
+      "role": "manager",
+      "is_staff": true,
+      "is_superuser": false
+    },
+    {
+      "username": "tenant",
+      "email": "tenant@example.com",
+      "first_name": "Jane",
+      "last_name": "Tenant",
+      "password": "TenantPass!23",
+      "role": "tenant",
+      "is_staff": false,
+      "is_superuser": false
     }
-  },
-  {
-    "model": "core.user",
-    "pk": 2,
-    "fields": {
-      "uid": "manager123uid",
-      "email": "manager@test.com",
-      "password": "pbkdf2_sha256$870000$Ef9W3wBNiSMe9pt6OZYtZG$ZTeS41CB9w8Xg9UuFqpD3iSl23sSZ4Mn8z55G7fwT5U=",
-      "role": "MANAGER",
-      "status": "ACTIVE",
-      "is_superuser": false,
-      "is_staff": true
-    }
-  },
-  {
-    "model": "core.user",
-    "pk": 3,
-    "fields": {
-      "uid": "tenant123uid",
-      "email": "tenant@test.com",
-      "password": "pbkdf2_sha256$870000$gOe5w+G5X8XEDbYQhyMJCo$U7R1MxINq7Lz6fgy6r2JzGzW02ElFNmQmRH3muShD6I=",
-      "role": "TENANT",
-      "status": "ACTIVE",
-      "is_superuser": false,
-      "is_staff": false
-    }
-  }
-]
+  ]
+}
