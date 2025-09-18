@@ -201,3 +201,6 @@ LOGGING = {
         "level": LOG_LEVEL,
     },
 }
+
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
