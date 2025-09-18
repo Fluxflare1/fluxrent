@@ -133,7 +133,7 @@ CELERY_TIMEZONE = TIME_ZONE
 
 # Sentry
 SENTRY_DSN = env("SENTRY_DSN", default="")
-if SENTRY_DSN:
+if SENTRY_DSN and SENTRY_DSN.strip():
     try:
         import sentry_sdk
         from sentry_sdk.integrations.django import DjangoIntegration
