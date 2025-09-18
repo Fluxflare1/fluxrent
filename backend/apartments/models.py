@@ -13,3 +13,7 @@ class Apartment(models.Model):
 
     def __str__(self):
         return f"{self.property or 'Property'} - {self.number or self.uid}"
+
+
+
+
