@@ -75,9 +75,23 @@ ASGI_APPLICATION = "fluxrent.asgi.application"
 # Database
 DATABASE_URL = env(
     "DATABASE_URL",
-    default="postgres://postgres:postgres@db:5432/tenantdb",
+    default="postgres://postgres:postgres@localhost:5432/tenantdb",
 )
-DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
+DATABASES = {
+    "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+}
+
+# Celery
+CELERY_BROKER_URL = env(
+    "CELERY_BROKER_URL", default="redis://localhost:6379/0"
+)
+CELERY_RESULT_BACKEND = env(
+    "CELERY_RESULT_BACKEND", default=CELERY_BROKER_URL
+)
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -122,14 +136,6 @@ CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
     default=["http://localhost:3000"],
 )
-
-# Celery
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://redis:6379/0")
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=CELERY_BROKER_URL)
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = TIME_ZONE
 
 # Sentry
 SENTRY_DSN = env("SENTRY_DSN", default="")
