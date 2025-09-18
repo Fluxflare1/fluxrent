@@ -1,2 +1,5 @@
+
 # backend/fluxrent/__init__.py
-# keep empty (Django project package)
+from .celery import app as celery_app
+
+__all__ = ("celery_app",)
