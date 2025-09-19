@@ -1,6 +1,7 @@
-# backend/bills/serializers.py
 from rest_framework import serializers
 from decimal import Decimal
+from django.utils import timezone
+from django.contrib.auth import get_user_model
 from .models import BillType, Bill, Invoice, InvoiceLine, Payment
 from django.conf import settings
 
@@ -47,7 +48,11 @@ class InvoiceLineSerializer(serializers.ModelSerializer):
 
 class InvoiceSerializer(serializers.ModelSerializer):
     lines = InvoiceLineSerializer(many=True)
-    tenant_apartment = serializers.PrimaryKeyRelatedField(queryset=None)
+    
+    # FIXED: Use empty queryset pattern to avoid DRF validation error
+    tenant_apartment = serializers.PrimaryKeyRelatedField(
+        queryset=get_user_model().objects.none()  # Empty queryset initially
+    )
 
     class Meta:
         model = Invoice
@@ -113,6 +118,7 @@ def generate_invoice_no_for_serializer():
 
 class PaymentSerializer(serializers.ModelSerializer):
     invoice = serializers.PrimaryKeyRelatedField(queryset=Invoice.objects.all())
+    
     class Meta:
         model = Payment
         fields = ["id", "invoice", "payment_ref", "amount", "method", "status", "paid_at", "metadata", "created_at"]
