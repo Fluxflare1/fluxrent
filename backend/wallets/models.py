@@ -41,7 +41,25 @@ class WalletTransaction(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name="transactions")
+    
+    # UPDATED: Allow wallet to be nullable for manual confirmations
+    wallet = models.ForeignKey(
+        Wallet, 
+        on_delete=models.CASCADE, 
+        related_name="transactions",
+        null=True,  # 🔹 allow manual confirmations
+        blank=True
+    )
+    
+    # NEW FIELD: Link to invoice for full traceability
+    invoice = models.ForeignKey(
+        "bills.Invoice",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transactions",
+    )
+    
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     type = models.CharField(max_length=10, choices=TYPE_CHOICES)
     source = models.CharField(max_length=50)  # CARD, DVA, P2P, BILL, etc.
@@ -50,7 +68,7 @@ class WalletTransaction(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.type} {self.amount} {self.wallet.user.username}"
+        return f"{self.type} {self.amount} {self.wallet.user.username if self.wallet else 'Manual'}"
 
 
 class SavingsPlan(models.Model):
