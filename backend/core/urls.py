@@ -12,4 +12,7 @@ urlpatterns = [
     
     # New properties app routes
     path("api/properties/", include("properties.urls")),
+
+    # other includes...
+    path("api/tenants/", include("tenants.urls")),  # <--- ADD THIS
 ]
