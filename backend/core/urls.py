@@ -1,18 +1,15 @@
-# backend/core/urls.py
-from django.urls import path, include
-from django.contrib import admin
-from rest_framework import routers
 
+
+from django.contrib import admin
+from django.urls import path, include
+from rest_framework import routers
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-
-    # Existing apps
     path("api/users/", include("users.urls")),
-    
-    # New properties app routes
     path("api/properties/", include("properties.urls")),
-
-    # other includes...
-    path("api/tenants/", include("tenants.urls")),  # <--- ADD THIS
+    path("api/tenants/", include("tenants.urls")),
+    path("api/bills/", include("bills.urls")),
+    path("api/wallets/", include("wallets.urls")),  # ✅ Wallet endpoints
+    # (Payments app will also be included later)
 ]
