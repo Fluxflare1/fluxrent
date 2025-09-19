@@ -1,6 +1,8 @@
 from decimal import Decimal
 from django.db import transaction
+from django.utils import timezone
 from wallets.models import WalletTransaction
+from payments.models import PaymentRecord
 from .models import Invoice
 
 
@@ -34,3 +36,30 @@ def pay_invoice_with_wallet(invoice: Invoice, wallet):
         invoice.save()
 
     return True
+
+
+def log_payment(invoice, user, method, amount, wallet=None, confirmed_by=None):
+    """
+    Creates both WalletTransaction + PaymentRecord for accounting.
+    """
+    # WalletTransaction (wallet may be None if manual)
+    WalletTransaction.objects.create(
+        wallet=wallet,
+        invoice=invoice,
+        amount=amount,
+        type="CREDIT",
+        source=method,
+        reference=f"INV-{invoice.id}-{timezone.now().timestamp()}",
+        status="SUCCESS",
+    )
+
+    # PaymentRecord (always required for reconciliation)
+    PaymentRecord.objects.create(
+        invoice=invoice,
+        tenant=user,
+        method=method,
+        amount=amount,
+        reference=f"PAY-{invoice.id}-{timezone.now().timestamp()}",
+        status="SUCCESS",
+        confirmed_by=confirmed_by,
+    )
