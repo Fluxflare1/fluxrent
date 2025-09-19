@@ -3,7 +3,7 @@ from rest_framework import viewsets, permissions
 from .models import Property
 from apartments.models import Apartment
 from .serializers import PropertySerializer, ApartmentSerializer
-from .permissions import IsPropertyOwnerOrReadOnly
+from .permissions import IsPropertyMsnagerOrReadOnly
 
 
 class PropertyViewSet(viewsets.ModelViewSet):
