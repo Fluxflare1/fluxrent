@@ -4,6 +4,7 @@ from .models import Property
 from apartments.models import Apartment
 from .serializers import PropertySerializer, ApartmentSerializer
 from .permissions import IsPropertyManagerOrReadOnly
+from rest_framework.permissions import IsAuthenticated
 
 
 class PropertyViewSet(viewsets.ModelViewSet):
