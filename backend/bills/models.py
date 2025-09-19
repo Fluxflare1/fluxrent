@@ -1,35 +1,53 @@
+# backend/bills/models.py
 from django.conf import settings
 from django.db import models, transaction
 from django.utils import timezone
 from django.core.validators import MinValueValidator
-from django.urls import reverse
 import uuid
 
-# We import TenantApartment lazily to avoid circular imports in startup.
-# Expected path: tenants.models.TenantApartment
-# If yours is different, update the string path in ForeignKey below.
+# NOTE:
+# - apartment FK points to apartments.Apartment. If your project uses properties.Apartment instead,
+#   replace "apartments.Apartment" with "properties.Apartment".
+# - tenant_apartment FK points to tenants.TenantApartment. Change if your tenants app/model differs.
+
 
 class BillType(models.Model):
     name = models.CharField(max_length=128, unique=True)
     description = models.TextField(blank=True)
     is_recurring = models.BooleanField(default=True)
-    default_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)])
+    default_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+    )
 
     class Meta:
         ordering = ["name"]
         verbose_name = "Bill Type"
         verbose_name_plural = "Bill Types"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 
 class Bill(models.Model):
     """
-    A bill definition attached to an Apartment (e.g., monthly rent, electricity)
+    A bill definition attached to an Apartment (e.g., monthly rent, electricity).
+    Bills are tied to an Apartment, not directly to a tenant.
     """
-    apartment = models.ForeignKey("properties.Apartment", on_delete=models.CASCADE, related_name="bills")
-    bill_type = models.ForeignKey(BillType, on_delete=models.PROTECT, related_name="bills")
+    apartment = models.ForeignKey(
+        "apartments.Apartment",
+        on_delete=models.CASCADE,
+        related_name="bills",
+        help_text="Apartment this bill belongs to (e.g., monthly rent).",
+    )
+    bill_type = models.ForeignKey(
+        BillType,
+        on_delete=models.PROTECT,
+        related_name="bills",
+    )
     amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
     start_date = models.DateField(default=timezone.now)
     end_date = models.DateField(null=True, blank=True)
@@ -44,39 +62,40 @@ class Bill(models.Model):
         verbose_name = "Bill"
         verbose_name_plural = "Bills"
 
-    def __str__(self):
-        return f"{self.bill_type.name} — {self.apartment.uid} — {self.amount}"
-
-
-def generate_invoice_number():
-    """
-    Invoice number format: INV/{YEAR}/{SEQ}
-    We make a simple DB-backed increment using a dedicated table to avoid race conditions.
-    """
-    from django.db import connection
-    year = timezone.now().year
-    table = "bills_invoiceseq"
-    # ensure table exists (migrate will create model, but safe guard)
-    with connection.cursor() as cursor:
-        try:
-            cursor.execute(f"SELECT nextval(pg_get_serial_sequence('{table}','id'))")
-        except Exception:
-            # Fallback: use timestamp seq
-            return f"INV/{year}/{int(timezone.now().timestamp())}"
-        # If nextval returned, roll back (we rely on InvoiceSeq model instead)
-    from .models import InvoiceSeq  # noqa: E402 (we import locally)
-    seq = InvoiceSeq.objects.create()
-    return f"INV/{year}/{str(seq.id).zfill(6)}"
+    def __str__(self) -> str:
+        return f"{self.bill_type.name} — {getattr(self.apartment, 'uid', self.apartment)} — {self.amount}"
 
 
 class InvoiceSeq(models.Model):
     """
-    simple incrementer used to allocate invoice numbers safely (auto PK)
+    Simple DB-backed sequence table used to allocate invoice numbers safely.
+    We create a new row for each invoice number and use the auto-increment id as the sequence.
     """
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Invoice Sequence"
+        verbose_name_plural = "Invoice Sequences"
+
+
+def _generate_invoice_number():
+    """
+    Invoice number format: INV/{YEAR}/{SEQ:06d}
+    Uses InvoiceSeq inside a transaction to ensure unique, monotonically increasing sequence per invoice.
+    """
+    year = timezone.now().year
+    with transaction.atomic():
+        seq = InvoiceSeq.objects.create()
+        seq_id = seq.id
+    return f"INV/{year}/{str(seq_id).zfill(6)}"
+
 
 class Invoice(models.Model):
+    """
+    Invoice created for a TenantApartment (bond between tenant and apartment).
+    Invoice contains lines and payments; totals are recalculated via recalc_totals().
+    """
     STATUS_DRAFT = "draft"
     STATUS_ISSUED = "issued"
     STATUS_PAID = "paid"
@@ -98,8 +117,13 @@ class Invoice(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    tenant_apartment = models.ForeignKey("tenants.TenantApartment", on_delete=models.CASCADE, related_name="invoices")
-    invoice_no = models.CharField(max_length=64, unique=True, editable=False)
+    tenant_apartment = models.ForeignKey(
+        "tenants.TenantApartment",
+        on_delete=models.CASCADE,
+        related_name="invoices",
+        help_text="The tenant-apartment bond this invoice is for.",
+    )
+    invoice_no = models.CharField(max_length=64, unique=True, editable=False, default=_generate_invoice_number)
     issue_date = models.DateField(default=timezone.now)
     due_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_DRAFT)
@@ -108,15 +132,15 @@ class Invoice(models.Model):
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    metadata = models.JSONField(default=dict, blank=True)  # free-form
-    
-    # New fields for manual payment confirmation
+    metadata = models.JSONField(default=dict, blank=True)
+
+    # Manual confirmation fields
     paid_via = models.CharField(
         max_length=50,
         choices=PAYMENT_METHOD_CHOICES,
         blank=True,
         null=True,
-        help_text="Payment method used for this invoice"
+        help_text="Payment method used for this invoice (set on manual confirm).",
     )
     confirmed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -124,71 +148,88 @@ class Invoice(models.Model):
         null=True,
         blank=True,
         related_name="confirmed_invoices",
-        help_text="Property Manager who confirmed manual payment",
+        help_text="User (e.g., property manager) who confirmed manual payment.",
     )
     confirmed_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ["-issue_date", "-created_at"]
         indexes = [
-            models.Index(fields=["invoice_no"]), 
+            models.Index(fields=["invoice_no"]),
             models.Index(fields=["tenant_apartment"]),
             models.Index(fields=["status"]),
         ]
         verbose_name = "Invoice"
         verbose_name_plural = "Invoices"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.invoice_no} — {self.tenant_apartment}"
 
     def recalc_totals(self):
-        totals = self.lines.aggregate(total=models.Sum("amount")) or {}
-        total = totals.get("total") or 0
-        paid = self.payments.filter(status="confirmed").aggregate(total=models.Sum("amount")) or {}
-        paid_total = paid.get("total") or 0
+        """
+        Recalculate total and paid amounts from invoice lines and payments.
+        Updates invoice status to PAID when paid_amount >= total_amount.
+        """
+        # Sum lines
+        total = self.lines.aggregate(total=models.Sum("amount")).get("total") or 0
+        # Sum confirmed payments
+        paid_total = self.payments.filter(status=Payment.STATUS_CONFIRMED).aggregate(total=models.Sum("amount")).get("total") or 0
+
+        # Update fields
         self.total_amount = total
         self.paid_amount = paid_total
-        
-        # update status if fully paid
+
         if self.total_amount and self.paid_amount >= self.total_amount:
             self.status = self.STATUS_PAID
-            
+
+        # Save only changed fields
         self.save(update_fields=["total_amount", "paid_amount", "status", "updated_at"])
-    
-    def confirm_manual_payment(self, user, payment_method, confirmed_at=None):
+
+    def confirm_manual_payment(self, user, payment_method: str, confirmed_at=None):
         """
-        Method for property managers to manually confirm payment
-        received outside the system (e.g., direct bank transfer)
+        Confirm a manual payment (bank transfer / cash) for this invoice.
+        - Marks invoice PAID, sets paid_amount
+        - Records who confirmed it (confirmed_by)
+        - Creates a Payment record with STATUS_CONFIRMED for audit
+        Returns True if confirmation was applied, False if invoice already PAID.
         """
-        if self.status != self.STATUS_PAID:
-            self.status = self.STATUS_PAID
-            self.paid_amount = self.total_amount
-            self.paid_via = payment_method
-            self.confirmed_by = user
-            self.confirmed_at = confirmed_at or timezone.now()
-            self.save(update_fields=[
-                "status", "paid_amount", "paid_via", 
-                "confirmed_by", "confirmed_at", "updated_at"
-            ])
-            
-            # Create a payment record for the manual confirmation
-            Payment.objects.create(
-                invoice=self,
-                payment_ref=f"MANUAL-{self.invoice_no}-{int(timezone.now().timestamp())}",
-                amount=self.total_amount,
-                method=payment_method.lower(),
-                status=Payment.STATUS_CONFIRMED,
-                paid_at=self.confirmed_at,
-                metadata={"manual_confirmation": True, "confirmed_by": user.id}
-            )
-            
-            return True
-        return False
+        if self.status == self.STATUS_PAID:
+            return False
+
+        confirmed_at = confirmed_at or timezone.now()
+
+        # mark invoice as paid
+        self.status = self.STATUS_PAID
+        self.paid_amount = self.total_amount
+        self.paid_via = payment_method
+        self.confirmed_by = user
+        self.confirmed_at = confirmed_at
+        self.save(update_fields=["status", "paid_amount", "paid_via", "confirmed_by", "confirmed_at", "updated_at"])
+
+        # create Payment audit record
+        Payment.objects.create(
+            invoice=self,
+            payment_ref=f"MANUAL-{self.invoice_no}-{int(confirmed_at.timestamp())}",
+            amount=self.total_amount,
+            method=payment_method.lower() if isinstance(payment_method, str) else "other",
+            status=Payment.STATUS_CONFIRMED,
+            paid_at=confirmed_at,
+            metadata={"manual_confirmation": True, "confirmed_by_id": getattr(user, "id", None)},
+        )
+
+        return True
 
 
 class InvoiceLine(models.Model):
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="lines")
-    bill = models.ForeignKey(Bill, on_delete=models.SET_NULL, null=True, blank=True, related_name="invoice_lines")
+    bill = models.ForeignKey(
+        Bill,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="invoice_lines",
+        help_text="Optional source Bill that inspired this invoice line.",
+    )
     description = models.CharField(max_length=512, blank=True)
     amount = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(0)])
     created_at = models.DateTimeField(auto_now_add=True)
@@ -198,8 +239,9 @@ class InvoiceLine(models.Model):
         verbose_name = "Invoice Line"
         verbose_name_plural = "Invoice Lines"
 
-    def __str__(self):
-        return f"{self.invoice.invoice_no}: {self.description or self.bill and self.bill.bill_type.name} - {self.amount}"
+    def __str__(self) -> str:
+        label = self.description or (self.bill.bill_type.name if self.bill else "")
+        return f"{self.invoice.invoice_no}: {label} - {self.amount}"
 
 
 class Payment(models.Model):
@@ -211,6 +253,7 @@ class Payment(models.Model):
         ("paystack", "Paystack"),
         ("other", "Other"),
     ]
+
     STATUS_PENDING = "pending"
     STATUS_CONFIRMED = "confirmed"
     STATUS_FAILED = "failed"
@@ -233,14 +276,23 @@ class Payment(models.Model):
 
     class Meta:
         ordering = ["-paid_at", "-created_at"]
-        indexes = [models.Index(fields=["payment_ref"]), models.Index(fields=["invoice"])]
+        indexes = [
+            models.Index(fields=["payment_ref"]),
+            models.Index(fields=["invoice"]),
+        ]
+        verbose_name = "Payment"
+        verbose_name_plural = "Payments"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.payment_ref} - {self.amount} ({self.status})"
 
     def confirm(self, paid_at=None):
+        """
+        Mark this payment as confirmed and update related invoice totals.
+        """
         self.status = self.STATUS_CONFIRMED
         self.paid_at = paid_at or timezone.now()
         self.save(update_fields=["status", "paid_at"])
-        # update invoice totals
+        # propagate to invoice
+        # invoice.recalc_totals will use payments with STATUS_CONFIRMED
         self.invoice.recalc_totals()
