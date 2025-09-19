@@ -18,7 +18,7 @@ from .permissions import IsAdminOrReadOnly, IsInvoiceRelatedParty
 
 # Import for the new wallet payment feature
 from wallets.models import Wallet, WalletTransaction
-from .services import pay_invoice_with_wallet
+from .services import pay_invoice_with_wallet, log_payment
 
 
 # Custom PM-only permission
@@ -198,3 +198,84 @@ class PaymentViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Payment already confirmed"}, status=status.HTTP_400_BAD_REQUEST)
         payment.confirm()
         return Response({"status": "confirmed", "payment_ref": payment.payment_ref})
+
+
+
+
+class InvoiceViewSet(viewsets.ModelViewSet):
+    ...
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def pay(self, request, pk=None):
+        """
+        Pay an invoice using the authenticated user's wallet.
+        """
+        invoice = get_object_or_404(Invoice, pk=pk)
+
+        # Ensure the invoice is linked to the tenant's active apartment
+        if invoice.tenant_apartment.tenant != request.user:
+            return Response({"detail": "You are not responsible for this invoice"}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            wallet = Wallet.objects.get(user=request.user)
+        except Wallet.DoesNotExist:
+            return Response({"detail": "Wallet not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            pay_invoice_with_wallet(invoice, wallet)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 🔹 Log payment (wallet + payment record)
+        log_payment(
+            invoice=invoice,
+            user=request.user,
+            method="WALLET",
+            amount=invoice.amount,
+            wallet=wallet,
+            confirmed_by=None,
+        )
+
+        return Response({"detail": "Invoice paid successfully"}, status=status.HTTP_200_OK)
+
+
+
+class InvoiceViewSet(viewsets.ModelViewSet):
+    ...
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsPropertyManager])
+    def confirm_manual_payment(self, request, pk=None):
+        """
+        Property Manager manually confirms invoice as paid outside Wallet.
+        """
+        invoice = get_object_or_404(Invoice, pk=pk)
+
+        if invoice.status == "PAID":
+            return Response({"detail": "Invoice already marked as paid"}, status=status.HTTP_400_BAD_REQUEST)
+
+        payment_method = request.data.get("method", "BANK_TRANSFER")
+
+        # Mark invoice paid
+        invoice.status = "PAID"
+        invoice.paid_via = payment_method
+        invoice.confirmed_by = request.user
+        invoice.confirmed_at = timezone.now()
+        invoice.save()
+
+        # 🔹 Log payment (wallet=None for manual payments)
+        log_payment(
+            invoice=invoice,
+            user=invoice.tenant_apartment.tenant,  # tenant responsible during tenancy
+            method=payment_method,
+            amount=invoice.amount,
+            wallet=None,
+            confirmed_by=request.user,
+        )
+
+        return Response(
+            {
+                "detail": f"Invoice {invoice.id} confirmed as paid manually via {payment_method}",
+                "invoice_status": invoice.status,
+            },
+            status=status.HTTP_200_OK,
+        )
