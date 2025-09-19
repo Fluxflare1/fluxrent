@@ -1,9 +1,10 @@
 # backend/properties/views.py
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
-from .models import Property, Apartment
+from rest_framework import viewsets, permissions
+from .models import Property
+from apartments.models import Apartment
 from .serializers import PropertySerializer, ApartmentSerializer
-from .permissions import IsPropertyManagerOrReadOnly
+from .permissions import IsPropertyOwnerOrReadOnly
+
 
 class PropertyViewSet(viewsets.ModelViewSet):
     queryset = Property.objects.all().select_related("owner")
@@ -27,3 +28,5 @@ class ApartmentViewSet(viewsets.ModelViewSet):
         tenant = serializer.validated_data.get("tenant", None)
         is_occupied = bool(tenant)
         serializer.save(is_occupied=is_occupied)
+
+
