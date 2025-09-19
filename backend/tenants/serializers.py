@@ -1,6 +1,6 @@
-# backend/tenants/serializers.py
 from rest_framework import serializers
 from django.conf import settings
+from django.contrib.auth import get_user_model  # ← ADD THIS IMPORT
 from .models import TenantApartment, BondRequest
 
 # We'll serialize minimal apartment fields to avoid tight coupling.
@@ -27,7 +27,11 @@ class TenantApartmentSerializer(serializers.ModelSerializer):
 
 
 class BondRequestCreateSerializer(serializers.ModelSerializer):
-    tenant_id = serializers.PrimaryKeyRelatedField(source="tenant", queryset=settings.AUTH_USER_MODEL.objects.all())
+    # FIXED: Use get_user_model() instead of settings.AUTH_USER_MODEL
+    tenant_id = serializers.PrimaryKeyRelatedField(
+        source="tenant", 
+        queryset=get_user_model().objects.all()  # ← CORRECTED LINE
+    )
     apartment = serializers.PrimaryKeyRelatedField(queryset=None)  # set in __init__
 
     message = serializers.CharField(allow_blank=True, required=False)
