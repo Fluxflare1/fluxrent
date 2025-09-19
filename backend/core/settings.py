@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     "tenants",
     "bills",
     "agreements",
+    "wallets",
+    "payments",
 ]
 
 MIDDLEWARE = [
