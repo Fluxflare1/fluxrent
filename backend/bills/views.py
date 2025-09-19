@@ -1,4 +1,3 @@
-# backend/bills/views.py
 from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -18,8 +17,14 @@ from .serializers import (
 from .permissions import IsAdminOrReadOnly, IsInvoiceRelatedParty
 
 # Import for the new wallet payment feature
-from wallets.models import Wallet
+from wallets.models import Wallet, WalletTransaction
 from .services import pay_invoice_with_wallet
+
+
+# Custom PM-only permission
+class IsPropertyManager(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.role == "PROPERTY_MANAGER"
 
 
 class BillTypeViewSet(viewsets.ModelViewSet):
@@ -64,7 +69,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         """Different permissions for different actions"""
         if self.action in ("retrieve", "update", "partial_update", "destroy"):
             return [IsAuthenticated(), IsInvoiceRelatedParty()]
-        if self.action in ("issue", "mark_paid"):
+        if self.action in ("issue", "mark_paid", "confirm_manual_payment"):
             return [IsAuthenticated(), IsAdminOrReadOnly()]
         if self.action == "pay":
             return [IsAuthenticated(), IsInvoiceRelatedParty()]  # Only tenant can pay their own invoice
@@ -99,6 +104,50 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         )
         invoice.recalc_totals()
         return Response({"status": "marked_paid", "payment_id": payment.id})
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsPropertyManager])
+    def confirm_manual_payment(self, request, pk=None):
+        """
+        Property Manager manually confirms invoice as paid outside Wallet.
+        This is for payments made via bank transfer, cash, or other external methods.
+        """
+        invoice = self.get_object()
+        
+        if invoice.status == Invoice.STATUS_PAID:
+            return Response({"detail": "Invoice already marked as paid"}, status=status.HTTP_400_BAD_REQUEST)
+
+        payment_method = request.data.get("method", "BANK_TRANSFER")
+        
+        # Use the model method to handle the confirmation
+        try:
+            invoice.confirm_manual_payment(
+                user=request.user,
+                payment_method=payment_method,
+                confirmed_at=timezone.now()
+            )
+            
+            # Log into WalletTransaction (for audit only, not linked to tenant wallet balance)
+            WalletTransaction.objects.create(
+                wallet=None,  # not deducted from wallet
+                amount=invoice.total_amount,
+                type="CREDIT",
+                source=f"MANUAL_CONFIRM_{payment_method}",
+                reference=f"INV-MANUAL-{invoice.id}",
+                status="SUCCESS",
+            )
+
+            return Response(
+                {
+                    "detail": f"Invoice {invoice.invoice_no} confirmed as paid manually via {payment_method}",
+                    "invoice_status": invoice.status,
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            return Response(
+                {"detail": f"Error confirming payment: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     # ===== TENANT ACTIONS =====
     @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsInvoiceRelatedParty])
