@@ -1,9 +1,9 @@
-# backend/bills/models.py
 from django.conf import settings
 from django.db import models, transaction
 from django.utils import timezone
 from django.core.validators import MinValueValidator
 from django.urls import reverse
+import uuid
 
 # We import TenantApartment lazily to avoid circular imports in startup.
 # Expected path: tenants.models.TenantApartment
@@ -90,6 +90,14 @@ class Invoice(models.Model):
         (STATUS_CANCELLED, "Cancelled"),
     ]
 
+    PAYMENT_METHOD_CHOICES = [
+        ("WALLET", "Wallet"),
+        ("BANK_TRANSFER", "Bank Transfer"),
+        ("CASH", "Cash"),
+        ("OTHER", "Other"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant_apartment = models.ForeignKey("tenants.TenantApartment", on_delete=models.CASCADE, related_name="invoices")
     invoice_no = models.CharField(max_length=64, unique=True, editable=False)
     issue_date = models.DateField(default=timezone.now)
@@ -101,10 +109,32 @@ class Invoice(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     metadata = models.JSONField(default=dict, blank=True)  # free-form
+    
+    # New fields for manual payment confirmation
+    paid_via = models.CharField(
+        max_length=50,
+        choices=PAYMENT_METHOD_CHOICES,
+        blank=True,
+        null=True,
+        help_text="Payment method used for this invoice"
+    )
+    confirmed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="confirmed_invoices",
+        help_text="Property Manager who confirmed manual payment",
+    )
+    confirmed_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ["-issue_date", "-created_at"]
-        indexes = [models.Index(fields=["invoice_no"]), models.Index(fields=["tenant_apartment"])]
+        indexes = [
+            models.Index(fields=["invoice_no"]), 
+            models.Index(fields=["tenant_apartment"]),
+            models.Index(fields=["status"]),
+        ]
         verbose_name = "Invoice"
         verbose_name_plural = "Invoices"
 
@@ -118,10 +148,42 @@ class Invoice(models.Model):
         paid_total = paid.get("total") or 0
         self.total_amount = total
         self.paid_amount = paid_total
+        
         # update status if fully paid
         if self.total_amount and self.paid_amount >= self.total_amount:
             self.status = self.STATUS_PAID
+            
         self.save(update_fields=["total_amount", "paid_amount", "status", "updated_at"])
+    
+    def confirm_manual_payment(self, user, payment_method, confirmed_at=None):
+        """
+        Method for property managers to manually confirm payment
+        received outside the system (e.g., direct bank transfer)
+        """
+        if self.status != self.STATUS_PAID:
+            self.status = self.STATUS_PAID
+            self.paid_amount = self.total_amount
+            self.paid_via = payment_method
+            self.confirmed_by = user
+            self.confirmed_at = confirmed_at or timezone.now()
+            self.save(update_fields=[
+                "status", "paid_amount", "paid_via", 
+                "confirmed_by", "confirmed_at", "updated_at"
+            ])
+            
+            # Create a payment record for the manual confirmation
+            Payment.objects.create(
+                invoice=self,
+                payment_ref=f"MANUAL-{self.invoice_no}-{int(timezone.now().timestamp())}",
+                amount=self.total_amount,
+                method=payment_method.lower(),
+                status=Payment.STATUS_CONFIRMED,
+                paid_at=self.confirmed_at,
+                metadata={"manual_confirmation": True, "confirmed_by": user.id}
+            )
+            
+            return True
+        return False
 
 
 class InvoiceLine(models.Model):
