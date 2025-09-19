@@ -32,3 +32,8 @@ class IsPropertyManagerOrReadOnly(BasePermission):
             return True
 
         return False
+
+    # ✅ OPTIONAL: Add object-level permission like the AI code
+    def has_object_permission(self, request, view, obj):
+        # Use the same logic as has_permission for object level
+        return self.has_permission(request, view)
