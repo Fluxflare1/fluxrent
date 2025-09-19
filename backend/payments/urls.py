@@ -1,9 +1,4 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+# backend/payments/urls.py
+from django.urls import path
 
-# If you need payment API endpoints later, you can add them here
-router = DefaultRouter()
-
-urlpatterns = [
-    path('', include(router.urls)),
-]
+urlpatterns = []
