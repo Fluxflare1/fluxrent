@@ -33,8 +33,10 @@ class BondRequestCreateSerializer(serializers.ModelSerializer):
         queryset=get_user_model().objects.all()
     )
     
-    # FIXED: Changed from queryset=None to read_only=False
-    apartment = serializers.PrimaryKeyRelatedField(read_only=False)
+    # FIXED: Use a proper queryset or make it read-only initially
+    apartment = serializers.PrimaryKeyRelatedField(
+        queryset=get_user_model().objects.none()  # Empty queryset initially
+    )
 
     message = serializers.CharField(allow_blank=True, required=False)
 
