@@ -1,4 +1,3 @@
-# backend/apartments/models.py
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -34,8 +33,9 @@ class Apartment(models.Model):
     class Meta:
         unique_together = ("property", "number")
         ordering = ["property", "number"]
-        verbose_name = "Apartment"
-        verbose_name_plural = "Apartments"
+        # CHANGED: These lines group Apartments under Properties in admin
+        verbose_name = "Properties - Apartment"
+        verbose_name_plural = "Properties - Apartments"
 
     def __str__(self):
         return f"{self.uid} ({self.property.uid})"
