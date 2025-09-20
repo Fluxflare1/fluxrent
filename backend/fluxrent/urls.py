@@ -12,6 +12,6 @@ urlpatterns = [
     path("api/wallets/", include("wallets.urls")),
     path("api/payments/", include("payments.urls")),
 
-    # 👇 Redirect root to admin
+    # Redirect root (/) → /admin/
     path("", RedirectView.as_view(url="/admin/", permanent=False)),
 ]
