@@ -4,8 +4,8 @@ from django.urls import path, include
 from .views import TenantApartmentViewSet, BondRequestViewSet
 
 router = DefaultRouter()
-router.register(r"bonds", TenantApartmentViewSet, basename="tenant-bonds")
-router.register(r"bond-requests", BondRequestViewSet, basename="bond-requests")
+router.register(r'tenant-apartments', TenantApartmentViewSet)
+router.register(r'bond-requests', BondRequestViewSet)
 
 urlpatterns = [
     path("", include(router.urls)),
