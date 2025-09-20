@@ -11,6 +11,7 @@ from .models import TenantApartment, BondRequest
 from .serializers import TenantApartmentSerializer, BondRequestCreateSerializer, BondRequestSerializer
 from .permissions import IsPropertyManager
 from apartments.models import Apartment  # import directly; ensure app exists
+from .models import TenantApartment, BondRequest
 
 class TenantApartmentViewSet(viewsets.ModelViewSet):
     """
