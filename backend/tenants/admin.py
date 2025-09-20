@@ -1,6 +1,14 @@
 # backend/tenants/admin.py
 from django.contrib import admin
 from .models import TenantApartment, BondRequest
+from bills.models import Bill
+
+
+class BillInline(admin.TabularInline):
+    model = Bill
+    extra = 0
+    fields = ("amount", "due_date", "status", "created_at")
+    readonly_fields = ("created_at",)
 
 
 @admin.register(TenantApartment)
@@ -9,6 +17,7 @@ class TenantApartmentAdmin(admin.ModelAdmin):
     list_filter = ("bond_status", "requested_at")
     search_fields = ("tenant__email", "apartment__name")
     ordering = ("-requested_at",)
+    inlines = [BillInline]
 
 
 @admin.register(BondRequest)
