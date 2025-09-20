@@ -13,6 +13,7 @@ class WalletTransactionAdmin(admin.ModelAdmin):
     list_display = ("id", "wallet", "amount", "type", "source", "status", "created_at")
     search_fields = ("wallet__user__username", "reference")
     list_filter = ("type", "status", "source")
+    ordering = ("-created_at",)
 
 
 @admin.register(SavingsPlan)
@@ -20,3 +21,5 @@ class SavingsPlanAdmin(admin.ModelAdmin):
     list_display = ("id", "wallet", "target_amount", "current_balance", "interval", "status")
     list_filter = ("status", "interval")
     search_fields = ("wallet__user__username",)
+    ordering = ("-created_at",)
+
