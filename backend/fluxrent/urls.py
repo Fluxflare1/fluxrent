@@ -10,4 +10,5 @@ urlpatterns = [
     path("api/bills/", include("bills.urls")),
     path("api/wallets/", include("wallets.urls")),
     path("api/payments/", include("payments.urls")),
+    path("", include("django.contrib.auth.urls")),
 ]
