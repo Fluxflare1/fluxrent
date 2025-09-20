@@ -10,16 +10,14 @@ class InvoiceInline(admin.TabularInline):
 
 @admin.register(TenantApartment)
 class TenantApartmentAdmin(admin.ModelAdmin):
-    list_display = ["id", "tenant", "apartment", "bond_status", "requested_at"]
-    list_filter = ["bond_status", "requested_at"]
-    search_fields = ["tenant__username", "apartment__name"]
-    autocomplete_fields = ["tenant", "apartment", "initiated_by"]
+    list_display = ("id", "tenant", "apartment", "bond_status", "requested_at")
+    search_fields = ("tenant__username", "apartment__id")
+    autocomplete_fields = ("tenant", "apartment", "initiated_by")
     inlines = [InvoiceInline]
 
 
 @admin.register(BondRequest)
 class BondRequestAdmin(admin.ModelAdmin):
-    list_display = ["id", "tenant", "apartment", "status", "created_at"]
-    list_filter = ["status", "created_at"]
-    search_fields = ["tenant__username", "apartment__name"]
-    autocomplete_fields = ["tenant", "apartment", "initiator", "processed_by"]
+    list_display = ("id", "tenant", "apartment", "status", "created_at")
+    search_fields = ("tenant__username", "apartment__id")
+    autocomplete_fields = ("tenant", "apartment", "initiator", "processed_by")
