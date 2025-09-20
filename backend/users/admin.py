@@ -24,3 +24,4 @@ class UserAdmin(DjangoUserAdmin):
         (_("UID & DVA"), {"fields": ("uid", "dva")}),
         (_("Important dates"), {"fields": ("last_login", "date_joined")}),
     )
+
