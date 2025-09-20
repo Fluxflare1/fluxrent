@@ -1,0 +1,47 @@
+{% extends "admin/index.html" %}
+{% load static %}
+
+{% block content %}
+<h1 style="margin-bottom:20px;">🚀 FluxRent Admin Dashboard</h1>
+
+<div class="dashboard-cards">
+    <div class="card"><h2>Tenants</h2><p>{{ tenant_count }}</p></div>
+    <div class="card"><h2>Properties</h2><p>{{ property_count }}</p></div>
+    <div class="card"><h2>Leases</h2><p>{{ lease_count }}</p></div>
+    <div class="card"><h2>Invoices</h2><p>{{ invoice_count }}</p></div>
+    <div class="card"><h2>Payments</h2><p>{{ payment_count }}</p></div>
+</div>
+
+<hr style="margin:30px 0;">
+
+{{ block.super }}
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+.dashboard-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+.card {
+    flex: 1 1 200px;
+    background: #fefefe;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid #eaeaea;
+}
+.card h2 {
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+.card p {
+    font-size: 26px;
+    font-weight: bold;
+    color: #0073e6;
+}
+</style>
+{% endblock %}
