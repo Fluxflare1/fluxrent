@@ -1,34 +1,31 @@
-from django.contrib import admin
-from django.contrib.auth import get_user_model
+from django.contrib.admin import AdminSite
 from django.template.response import TemplateResponse
+from django.urls import path
+from django.utils.translation import gettext_lazy as _
 
-# ❌ Wrong
-# from billing.models import Invoice, Payment
+class CustomAdminSite(AdminSite):
+    site_header = "FluxRent Admin"
+    site_title = "FluxRent Portal"
+    index_title = "Welcome to FluxRent Dashboard"
 
-# ✅ Correct
-from bills.models import Invoice, Payment
-
-
-class CustomAdminSite(admin.AdminSite):
-    site_header = "FluxRent Administration"
-    site_title = "FluxRent Admin"
-    index_title = "Dashboard"
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path("", self.admin_view(self.index), name="index"),
+        ]
+        return custom_urls + urls
 
     def index(self, request, extra_context=None):
-        User = get_user_model()
-
-        stats = {
-            # "tenants": Tenant.objects.count(),  # 🚨 disable for now
-            "users": User.objects.count(),
-            "invoices": Invoice.objects.count(),
-            "payments": Payment.objects.count(),
-        }
-
         context = {
-            **self.each_context(request),
-            "title": self.index_title,
-            "apps": self.get_app_list(request),
-            "stats": stats,
+            "tenant_count": 0,
+            "property_count": 0,
+            "lease_count": 0,
+            "invoice_count": 0,
+            "payment_count": 0,
         }
-
+        if extra_context:
+            context.update(extra_context)
         return TemplateResponse(request, "admin/custom_index.html", context)
+
+# ✅ Export this instance so urls.py can import it
+custom_admin_site = CustomAdminSite(name="custom_admin")
