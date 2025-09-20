@@ -31,3 +31,4 @@ class PaymentAdmin(admin.ModelAdmin):
 @admin.register(InvoiceSeq)
 class InvoiceSeqAdmin(admin.ModelAdmin):
     list_display = ("id", "created_at")
+
