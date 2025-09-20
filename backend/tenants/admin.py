@@ -1,7 +1,14 @@
-# backend/tenants/admin.py
 from django.contrib import admin
 from .models import TenantApartment, BondRequest
 from bills.models import Bill
+from payments.models import Payment
+
+
+class PaymentInline(admin.TabularInline):
+    model = Payment
+    extra = 0
+    fields = ("amount", "status", "payment_method", "created_at")
+    readonly_fields = ("created_at",)
 
 
 class BillInline(admin.TabularInline):
@@ -9,6 +16,7 @@ class BillInline(admin.TabularInline):
     extra = 0
     fields = ("amount", "due_date", "status", "created_at")
     readonly_fields = ("created_at",)
+    inlines = [PaymentInline]  # chain payments inline under bills
 
 
 @admin.register(TenantApartment)
