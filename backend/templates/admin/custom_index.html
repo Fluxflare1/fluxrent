@@ -2,55 +2,47 @@
 {% load static %}
 
 {% block content %}
-<div class="dashboard" style="display: grid; grid-template-columns: repeat(auto-fit,minmax(250px,1fr)); gap:20px;">
-    <div class="card">
-        <h2>Users & Tenants</h2>
-        <p><strong>Total Users:</strong> {{ user_count }}</p>
-        <p><strong>Tenants:</strong> {{ tenant_count }}</p>
-        <p><strong>Bond Requests:</strong> {{ bond_request_count }}</p>
-        <a href="{% url 'admin:auth_user_changelist' %}">Manage Users</a><br>
-        <a href="{% url 'admin:tenants_tenantapartment_changelist' %}">Tenant Apartments</a><br>
-        <a href="{% url 'admin:tenants_bondrequest_changelist' %}">Bond Requests</a>
-    </div>
+<h1 style="margin-bottom:30px;">🚀 FluxRent Admin Dashboard</h1>
 
-    <div class="card">
-        <h2>Properties & Apartments</h2>
-        <p><strong>Properties:</strong> {{ property_count }}</p>
-        <p><strong>Apartments:</strong> {{ apartment_count }}</p>
-        <a href="{% url 'admin:properties_property_changelist' %}">Manage Properties</a><br>
-        <a href="{% url 'admin:apartments_apartment_changelist' %}">Manage Apartments</a>
+<!-- Stats Section -->
+<div style="display:flex; flex-wrap:wrap; gap:20px; margin-bottom:40px;">
+    <div style="flex:1 1 200px; background:#f3f4f6; padding:20px; border-radius:12px; text-align:center; box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+        <h3 style="margin-bottom:10px;">🏢 Tenants</h3>
+        <p style="font-size:2rem; font-weight:600;">{{ stats.tenants }}</p>
     </div>
-
-    <div class="card">
-        <h2>Finance</h2>
-        <p><strong>Invoices:</strong> {{ invoice_count }}</p>
-        <p><strong>Payments:</strong> {{ payment_count }}</p>
-        <p><strong>Wallets:</strong> {{ wallet_count }}</p>
-        <a href="{% url 'admin:bills_invoice_changelist' %}">Invoices</a><br>
-        <a href="{% url 'admin:payments_paymentrecord_changelist' %}">Payments</a><br>
-        <a href="{% url 'admin:wallets_wallet_changelist' %}">Wallets</a>
+    <div style="flex:1 1 200px; background:#f3f4f6; padding:20px; border-radius:12px; text-align:center; box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+        <h3 style="margin-bottom:10px;">👥 Users</h3>
+        <p style="font-size:2rem; font-weight:600;">{{ stats.users }}</p>
+    </div>
+    <div style="flex:1 1 200px; background:#f3f4f6; padding:20px; border-radius:12px; text-align:center; box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+        <h3 style="margin-bottom:10px;">📄 Invoices</h3>
+        <p style="font-size:2rem; font-weight:600;">{{ stats.invoices }}</p>
+    </div>
+    <div style="flex:1 1 200px; background:#f3f4f6; padding:20px; border-radius:12px; text-align:center; box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+        <h3 style="margin-bottom:10px;">💳 Payments</h3>
+        <p style="font-size:2rem; font-weight:600;">{{ stats.payments }}</p>
     </div>
 </div>
 
-<style>
-    .card {
-        background: #fff;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .card h2 {
-        margin-top: 0;
-        font-size: 1.3rem;
-    }
-    .card a {
-        display: inline-block;
-        margin-top: 5px;
-        color: #0d6efd;
-        text-decoration: none;
-    }
-    .card a:hover {
-        text-decoration: underline;
-    }
-</style>
+<!-- App / Models Section -->
+<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:20px;">
+    {% for app in apps %}
+    <div style="border:1px solid #e5e7eb; border-radius:12px; background:#fff; padding:20px; box-shadow:0 2px 6px rgba(0,0,0,0.08); transition:transform 0.2s ease;">
+        <h2 style="font-size:1.3rem; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+            <img src="{% static 'admin/img/icon-changelist.svg' %}" alt="icon" style="width:20px; height:20px; opacity:0.7;">
+            {{ app.name }}
+        </h2>
+        <ul style="list-style:none; padding:0; margin:0;">
+            {% for model in app.models %}
+            <li style="margin-bottom:10px;">
+                <a href="{{ model.admin_url }}" style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-radius:8px; background:#f9fafb; text-decoration:none; color:#111827; font-size:0.95rem; transition:background 0.2s ease;">
+                    <span>{{ model.name }}</span>
+                    <span style="font-size:0.85rem; color:#6b7280;">Manage →</span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+</div>
 {% endblock %}
