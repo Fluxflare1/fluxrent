@@ -2,8 +2,11 @@
 from django.contrib import admin
 from .models import Apartment
 
+
 @admin.register(Apartment)
 class ApartmentAdmin(admin.ModelAdmin):
-    list_display = ("uid", "property", "number", "floor", "bedrooms", "is_occupied", "tenant")
-    search_fields = ("uid", "number", "property__uid", "property__name")
-    list_filter = ("is_occupied", "bedrooms", "floor", "created_at")
+    list_display = ("id", "name", "property", "unit_number", "is_available", "created_at")
+    list_filter = ("is_available", "created_at")
+    search_fields = ("name", "unit_number", "property__name")
+    ordering = ("-created_at",)
+
