@@ -1,27 +1,40 @@
-# backend/users/admin.py
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
-from django.utils.translation import gettext_lazy as _
-from django import forms
-from .models import User
+from django.contrib.auth import get_user_model
+from tenants.models import TenantApartment
+from bills.models import Bill
+from payments.models import Payment
 
-class CustomUserChangeForm(forms.ModelForm):
-    class Meta:
-        model = User
-        fields = "__all__"
+
+class PaymentInline(admin.TabularInline):
+    model = Payment
+    extra = 0
+    fields = ("amount", "status", "payment_method", "created_at")
+    readonly_fields = ("created_at",)
+
+
+class BillInline(admin.TabularInline):
+    model = Bill
+    extra = 0
+    fields = ("amount", "due_date", "status", "created_at")
+    readonly_fields = ("created_at",)
+    inlines = [PaymentInline]
+
+
+class TenantApartmentInline(admin.TabularInline):
+    model = TenantApartment
+    extra = 0
+    fields = ("apartment", "bond_status", "requested_at", "activated_at")
+    readonly_fields = ("requested_at",)
+    inlines = [BillInline]
+
+
+User = get_user_model()
+
 
 @admin.register(User)
-class UserAdmin(DjangoUserAdmin):
-    form = CustomUserChangeForm
-    list_display = ("email", "first_name", "last_name", "role", "is_staff", "is_active")
-    list_filter = ("role", "is_staff", "is_superuser", "is_active")
+class UserAdmin(admin.ModelAdmin):
+    list_display = ("id", "email", "first_name", "last_name", "is_active", "is_staff", "date_joined")
+    list_filter = ("is_active", "is_staff", "is_superuser")
     search_fields = ("email", "first_name", "last_name")
-    ordering = ("email",)
-    fieldsets = (
-        (None, {"fields": ("email", "password")}),
-        (_("Personal info"), {"fields": ("first_name", "last_name","phone")}),
-        (_("Permissions"), {"fields": ("is_active", "is_staff", "is_superuser", "role")}),
-        (_("UID & DVA"), {"fields": ("uid", "dva")}),
-        (_("Important dates"), {"fields": ("last_login", "date_joined")}),
-    )
-
+    ordering = ("-date_joined",)
+    inlines = [TenantApartmentInline]
