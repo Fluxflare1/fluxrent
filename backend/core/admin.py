@@ -2,8 +2,11 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.template.response import TemplateResponse
 
-# from tenants.models import Tenant   # 🚨 disable this until Tenant exists
-from billing.models import Invoice, Payment
+# ❌ Wrong
+# from billing.models import Invoice, Payment
+
+# ✅ Correct
+from bills.models import Invoice, Payment
 
 
 class CustomAdminSite(admin.AdminSite):
