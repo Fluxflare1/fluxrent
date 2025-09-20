@@ -1,17 +1,13 @@
-# backend/fluxrent/urls.py
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import RedirectView
+from core.admin import custom_admin_site  # ⬅️ import our custom site
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path("admin/", custom_admin_site.urls),  # ⬅️ use custom admin
     path("api/users/", include("users.urls")),
     path("api/properties/", include("properties.urls")),
     path("api/tenants/", include("tenants.urls")),
     path("api/bills/", include("bills.urls")),
     path("api/wallets/", include("wallets.urls")),
     path("api/payments/", include("payments.urls")),
-
-    # Redirect root (/) → /admin/
-    path("", RedirectView.as_view(url="/admin/", permanent=False)),
 ]
