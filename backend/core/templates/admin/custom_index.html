@@ -2,55 +2,20 @@
 {% load static %}
 
 {% block content %}
-<div class="dashboard" style="display: grid; grid-template-columns: repeat(auto-fit,minmax(250px,1fr)); gap:20px;">
-    <div class="card">
-        <h2>Users & Tenants</h2>
-        <p><strong>Total Users:</strong> {{ user_count }}</p>
-        <p><strong>Tenants:</strong> {{ tenant_count }}</p>
-        <p><strong>Bond Requests:</strong> {{ bond_request_count }}</p>
-        <a href="{% url 'admin:auth_user_changelist' %}">Manage Users</a><br>
-        <a href="{% url 'admin:tenants_tenantapartment_changelist' %}">Tenant Apartments</a><br>
-        <a href="{% url 'admin:tenants_bondrequest_changelist' %}">Bond Requests</a>
-    </div>
+<h1 style="margin-bottom:20px;">🚀 FluxRent Admin Dashboard</h1>
 
-    <div class="card">
-        <h2>Properties & Apartments</h2>
-        <p><strong>Properties:</strong> {{ property_count }}</p>
-        <p><strong>Apartments:</strong> {{ apartment_count }}</p>
-        <a href="{% url 'admin:properties_property_changelist' %}">Manage Properties</a><br>
-        <a href="{% url 'admin:apartments_apartment_changelist' %}">Manage Apartments</a>
-    </div>
-
-    <div class="card">
-        <h2>Finance</h2>
-        <p><strong>Invoices:</strong> {{ invoice_count }}</p>
-        <p><strong>Payments:</strong> {{ payment_count }}</p>
-        <p><strong>Wallets:</strong> {{ wallet_count }}</p>
-        <a href="{% url 'admin:bills_invoice_changelist' %}">Invoices</a><br>
-        <a href="{% url 'admin:payments_paymentrecord_changelist' %}">Payments</a><br>
-        <a href="{% url 'admin:wallets_wallet_changelist' %}">Wallets</a>
-    </div>
+<div style="display:flex; flex-wrap:wrap; gap:20px;">
+    {% for app in apps %}
+        <div style="flex:1 1 300px; border:1px solid #ddd; border-radius:10px; padding:20px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+            <h2>{{ app.name }}</h2>
+            <ul>
+                {% for model in app.models %}
+                <li>
+                    <a href="{{ model.admin_url }}">{{ model.name }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endfor %}
 </div>
-
-<style>
-    .card {
-        background: #fff;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .card h2 {
-        margin-top: 0;
-        font-size: 1.3rem;
-    }
-    .card a {
-        display: inline-block;
-        margin-top: 5px;
-        color: #0d6efd;
-        text-decoration: none;
-    }
-    .card a:hover {
-        text-decoration: underline;
-    }
-</style>
 {% endblock %}
