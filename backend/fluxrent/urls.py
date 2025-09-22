@@ -1,9 +1,10 @@
 from django.contrib import admin
 from django.urls import path, include
-from core.admin import custom_admin_site  # ⬅️ import our custom site
 
 urlpatterns = [
-    path("admin/", custom_admin_site.urls),  # ⬅️ use custom admin
+    path("admin/", admin.site.urls),
+    # Keep /api/ or root mapping to core.urls
+    path("", include("core.urls")),
     path("api/users/", include("users.urls")),
     path("api/properties/", include("properties.urls")),
     path("api/tenants/", include("tenants.urls")),
