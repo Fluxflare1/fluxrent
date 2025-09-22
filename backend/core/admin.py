@@ -1,11 +1,13 @@
-from django.contrib.admin import AdminSite
+from django.contrib.admin import AdminSite as BaseAdminSite
 from django.template.response import TemplateResponse
-from tenants.models import Tenant
+from django.contrib.auth import get_user_model
 from properties.models import Property
 from leases.models import Lease
 from bills.models import Invoice, Payment
 
-class AdminSite(AdminSite):
+Tenant = get_user_model()
+
+class AdminSite(BaseAdminSite):
     site_header = "FluxRent Admin"
     site_title = "FluxRent Portal"
     index_title = "Dashboard"
