@@ -5,7 +5,7 @@ from properties.models import Property
 from leases.models import Lease
 from bills.models import Invoice, Payment
 
-class CustomAdminSite(AdminSite):
+class AdminSite(AdminSite):
     site_header = "FluxRent Admin"
     site_title = "FluxRent Portal"
     index_title = "Dashboard"
@@ -23,4 +23,4 @@ class CustomAdminSite(AdminSite):
         return super().index(request, extra_context=context)
 
 
-custom_admin_site = CustomAdminSite(name="custom_admin")
+admin_site = AdminSite(name="admin")
