@@ -2,7 +2,6 @@ from django.contrib.admin import AdminSite as BaseAdminSite
 from django.template.response import TemplateResponse
 from django.contrib.auth import get_user_model
 from properties.models import Property
-from leases.models import Lease
 from bills.models import Invoice, Payment
 
 Tenant = get_user_model()
