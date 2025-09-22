@@ -1,0 +1,38 @@
+{# templates/admin/index.html — safe, robust admin landing dashboard #}
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+{% block content %}
+<h1 style="margin-bottom:12px;">FluxRent Admin</h1>
+
+<div style="display:flex;gap:20px;flex-wrap:wrap;">
+  <aside style="min-width:220px;flex:0 0 260px;">
+    <div style="padding:12px;border-radius:8px;border:1px solid #eee;">
+      <h3>Summary</h3>
+      <ul style="list-style:none;padding-left:0;">
+        {% comment %} we can inject counts later via context processors {% endcomment %}
+        <li>Total Users: {{ stats.users|default:"-" }}</li>
+        <li>Total Properties: {{ stats.properties|default:"-" }}</li>
+        <li>Total Apartments: {{ stats.apartments|default:"-" }}</li>
+        <li>Pending Bonds: {{ stats.pending_bonds|default:"-" }}</li>
+      </ul>
+    </div>
+  </aside>
+
+  <main style="flex:1 1 600px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">
+      {% for app in app_list %}
+      <div style="border-radius:10px;padding:16px;border:1px solid #e7e7e7;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.03);">
+        <h3>{{ app.name }}</h3>
+        <ul>
+          {% for model in app.models %}
+          <li>
+            <a href="{{ model.admin_url }}">{{ model.name }}</a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+  </main>
+</div>
+{% endblock %}
