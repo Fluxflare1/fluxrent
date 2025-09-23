@@ -73,3 +73,20 @@ class WalletSecurity(models.Model):
 
     def __str__(self):
         return f"Security for {self.wallet}"
+
+
+class StandingOrder(models.Model):
+    """
+    Links Wallet with TenantApartment bills/invoices for auto-payment.
+    """
+    uid = models.CharField(max_length=20, unique=True, default=lambda: generate_uid("SO"))
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name="standing_orders")
+    tenant_apartment = models.ForeignKey("tenants.TenantApartment", on_delete=models.CASCADE, related_name="standing_orders")
+    pay_all_bills = models.BooleanField(default=True)  # if False, specify categories
+    bill_types = models.JSONField(blank=True, null=True)  # e.g., ["rent", "utilities"]
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"SO-{self.uid} for {self.wallet.user}"
+
