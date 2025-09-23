@@ -2,6 +2,10 @@ import uuid
 from django.db import models
 from django.conf import settings
 from properties.models import Apartment, Property
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from bills.models import Invoice, PaymentRecord
+import decimal
 
 User = settings.AUTH_USER_MODEL
 
@@ -57,3 +61,40 @@ class StatementOfStay(models.Model):
 
     def __str__(self):
         return f"Statement {self.uid} for {self.tenant_apartment}"
+
+
+
+
+class StatementOfStay(models.Model):
+    # ... (existing fields)
+
+    @classmethod
+    def generate_for(cls, tenant_apartment):
+        invoices = tenant_apartment.invoices.all()
+        total_due = decimal.Decimal("0.00")
+        total_paid = decimal.Decimal("0.00")
+        breakdown = []
+
+        for inv in invoices:
+            total_due += inv.total_amount
+            payments = sum(p.amount_paid for p in inv.payments.all())
+            total_paid += payments
+            breakdown.append(
+                f"{inv.uid} ({inv.type}): Due {inv.total_amount}, Paid {payments}"
+            )
+
+        summary = (
+            f"Tenant: {tenant_apartment.tenant_bond.tenant}\n"
+            f"Apartment: {tenant_apartment.apartment}\n"
+            f"Stay: {tenant_apartment.start_date} → {tenant_apartment.end_date}\n\n"
+            f"Invoices:\n" + "\n".join(breakdown) + "\n\n"
+            f"TOTAL DUE: {total_due}\nTOTAL PAID: {total_paid}\nBALANCE: {total_due - total_paid}"
+        )
+
+        return cls.objects.create(tenant_apartment=tenant_apartment, summary=summary)
+
+
+@receiver(post_save, sender=TenantApartment)
+def generate_statement_on_exit(sender, instance, **kwargs):
+    if not instance.is_active and instance.end_date and not hasattr(instance, "statement"):
+        StatementOfStay.generate_for(instance)
