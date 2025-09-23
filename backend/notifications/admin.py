@@ -1,7 +1,0 @@
-from django.contrib import admin
-from .models import Notification
-
-@admin.register(Notification)
-class NotificationAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "title", "sent", "created_at")
-    list_filter = ("sent",)
