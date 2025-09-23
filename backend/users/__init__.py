@@ -1,1 +1,1 @@
-# empty but required for Django app recognition
+default_app_config = "users.apps.UsersConfig"
