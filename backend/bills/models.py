@@ -49,9 +49,14 @@ class PaymentRecord(models.Model):
     paid_at = models.DateTimeField(auto_now_add=True)
     method = models.CharField(
         max_length=20,
-        choices=[("bank", "Bank Transfer"), ("card", "Card"), ("cash", "Cash")],
+        choices=[
+            ("bank", "Bank Transfer"), 
+            ("card", "Card"), 
+            ("cash", "Cash"),
+            ("wallet_manual", "Wallet Manual"),      # ← ADDED
+            ("wallet_auto", "Wallet Auto-Pay")       # ← ADDED
+        ],
     )
 
     def __str__(self):
         return f"Payment {self.uid} - {self.amount_paid}"
-
