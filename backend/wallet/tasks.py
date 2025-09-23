@@ -1,6 +1,6 @@
 from celery import shared_task
 from django.utils.timezone import now
-from bills.models import Invoice, PaymentRecord  # ← ADD PaymentRecord import
+from bills.models import Invoice, PaymentRecord  # ← Ensure PaymentRecord is imported
 from .models import StandingOrder, WalletTransaction
 
 @shared_task
@@ -42,7 +42,7 @@ def process_standing_orders():
                     invoice=invoice,
                     amount_paid=invoice.amount,
                     paid_at=now(),
-                    method="wallet_auto"  # ← NEW: Record the payment method
+                    method="wallet_auto"  # ← This requires the updated PaymentRecord
                 )
 
                 invoice.status = "paid"
