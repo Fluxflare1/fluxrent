@@ -1,123 +1,78 @@
-from django.contrib.auth import get_user_model
-from django.db import transaction
-from rest_framework import status, viewsets, mixins
-from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework import viewsets, status, permissions
+from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework import generics
+from django.shortcuts import get_object_or_404
 
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .models import User, KYC
+from .serializers import UserSerializer, UserCreateSerializer, KYCSerializer, ChangePasswordSerializer
 
-from .serializers import (
-    RegisterSerializer,
-    UserDetailSerializer,
-    UserPublicSerializer,
-    KYCSerializer,
-    RoleUpdateSerializer,
-)
-from .permissions import IsOwnerOrAdmin
-
-User = get_user_model()
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
-class RegisterView(generics.CreateAPIView):
-    """
-    POST /api/users/register/  -> registers a new user
-    Accepts optional KYC payload to create KYC record at signup.
-    """
-    serializer_class = RegisterSerializer
-    permission_classes = (AllowAny,)
+class ObtainTokenPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        # Add custom claims
+        token["role"] = user.role
+        token["uid"] = user.uid
+        return token
+
+
+class ObtainTokenPairView(TokenObtainPairView):
+    serializer_class = ObtainTokenPairSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    """
-    /api/users/
-    - list (admin only)
-    - retrieve (owner or admin)
-    - partial_update (owner or admin)
-    - role assignment (admin only) -> custom action
-    - kyc endpoints (nested)
-    """
     queryset = User.objects.all().order_by("-date_joined")
-    serializer_class = UserDetailSerializer
-    permission_classes = (IsAuthenticated,)
-
-    def get_permissions(self):
-        # list only allowed to admin/staff (so admin can search users).
-        if self.action in ["list"]:
-            self.permission_classes = [IsAuthenticated, IsAdminUser]
-        elif self.action in ["retrieve", "partial_update", "update"]:
-            self.permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
-        elif self.action in ["set_role", "kyc_list", "kyc_verify"]:
-            self.permission_classes = [IsAuthenticated, IsAdminUser]
-        else:
-            self.permission_classes = [IsAuthenticated]
-        return super().get_permissions()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_serializer_class(self):
-        if self.action == "list":
-            return UserPublicSerializer
-        return UserDetailSerializer
+        if self.action == "create":
+            return UserCreateSerializer
+        return UserSerializer
 
-    @action(detail=True, methods=["post"], url_path="set-role", serializer_class=RoleUpdateSerializer)
-    @transaction.atomic
-    def set_role(self, request, pk=None):
-        """
-        Admin-only: change user's role.
-        """
-        user = self.get_object()
-        serializer = RoleUpdateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        new_role = serializer.validated_data["role"]
-        user.role = new_role
-        user.save(update_fields=["role"])
-        return Response({"status": "ok", "role": user.role})
+    def get_permissions(self):
+        # Allow anyone to create (registration) but restrict list/retrieve to authenticated
+        if self.action == "create":
+            return [permissions.AllowAny()]
+        return super().get_permissions()
 
-    @action(detail=True, methods=["get"], url_path="kyc", serializer_class=KYCSerializer)
-    def kyc_detail(self, request, pk=None):
-        user = self.get_object()
-        if not hasattr(user, "kyc"):
-            return Response({"detail": "No KYC record"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = KYCSerializer(user.kyc)
+    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def me(self, request):
+        serializer = UserSerializer(request.user, context={"request": request})
         return Response(serializer.data)
 
-    @action(detail=True, methods=["post"], url_path="kyc", serializer_class=KYCSerializer)
-    def kyc_create(self, request, pk=None):
-        """
-        Allow user (owner) to create/update their KYC.
-        Admins can use kyc_verify to mark verified.
-        """
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    def set_password(self, request, pk=None):
         user = self.get_object()
-        # only owner or admin can create/update
-        if not (request.user.is_staff or user.pk == request.user.pk):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-        data = request.data.copy()
-        data["user"] = user.pk
-        # upsert pattern
-        if hasattr(user, "kyc"):
-            serializer = KYCSerializer(user.kyc, data=data, partial=True)
+        if request.user != user and not request.user.is_superuser:
+            return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+        serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        if not user.check_password(serializer.validated_data["old_password"]) and not request.user.is_superuser:
+            return Response({"old_password": ["Wrong password."]}, status=status.HTTP_400_BAD_REQUEST)
+        user.set_password(serializer.validated_data["new_password"])
+        user.save()
+        return Response({"detail": "Password updated."})
+
+    @action(detail=True, methods=["get", "put"], permission_classes=[permissions.IsAuthenticated])
+    def kyc(self, request, pk=None):
+        user = self.get_object()
+        # Only self or platform owner can view/edit KYC
+        if request.user != user and not request.user.is_superuser:
+            return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+        if request.method == "GET":
+            if hasattr(user, "kyc"):
+                ser = KYCSerializer(user.kyc)
+                return Response(ser.data)
+            return Response({}, status=status.HTTP_200_OK)
         else:
-            serializer = KYCSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(user=user)
-        # update flag on user
-        user.kyc_completed = getattr(user, "kyc", None) is not None and user.kyc.verified
-        user.save(update_fields=["kyc_completed"])
-        return Response(serializer.data)
-
-    @action(detail=True, methods=["post"], url_path="kyc/verify")
-    def kyc_verify(self, request, pk=None):
-        """
-        Admin-only: mark KYC verified or not.
-        payload: {"verified": true}
-        """
-        user = self.get_object()
-        if not hasattr(user, "kyc"):
-            return Response({"detail": "No KYC record"}, status=status.HTTP_404_NOT_FOUND)
-        verified = bool(request.data.get("verified", True))
-        user.kyc.verified = verified
-        user.kyc.save(update_fields=["verified"])
-        user.kyc_completed = verified
-        user.save(update_fields=["kyc_completed"])
-        return Response({"status": "ok", "verified": verified})
+            data = request.data
+            obj, created = KYC.objects.get_or_create(user=user)
+            ser = KYCSerializer(obj, data=data, partial=True)
+            ser.is_valid(raise_exception=True)
+            ser.save()
+            return Response(ser.data)
