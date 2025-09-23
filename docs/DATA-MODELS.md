@@ -1,202 +1,77 @@
-Got it ✅ — let’s lock down a UID generation scheme so that every entity (Property, Apartment, Tenant, Agent) has a 
-
-📄 DATA-MODELS.md
-
-1. UID Generation Overview
-
-Each entity in the system (Property, Apartment, Tenant, Agent) must have a globally unique identifier (UID).
-The UID must:
-
-Be alphanumeric and human-readable.
-
-Encode location (State & LGA codes).
-
-Encode entity type (Property, Apartment, Tenant, Agent).
-
-Be sequential for easier tracking.
-
-Be machine-validated using regex patterns.
-
-
+# FluxRent Data Models
 
 ---
 
-2. Property UID
+## Core Entities
 
-Structure
-
-NGN[STATE_CODE]/[LGA_CODE]/[STREET_CODE]/[HOUSE_CODE]
-
-NGN → Country code (Nigeria).
-
-STATE_CODE → 2-digit code for state.
-
-LGA_CODE → 2-digit code for local government area.
-
-STREET_CODE → 2-digit code assigned to the street.
-
-HOUSE_CODE → 2-digit code per property on the street.
-
-
-Example
-
-NGN01/08/20/05
-
-Meaning: Lagos State (01), Alimosho LGA (08), Street 20, House 05.
-
-Regex Validation
-
-^NGN\d{2}/\d{2}/\d{2}/\d{2}$
-
+### User
+- `uid` (PK, UUID)
+- `first_name`
+- `last_name`
+- `email`
+- `phone_number`
+- `role` (base, tenant, agent, manager, owner)
+- `kyc_completed` (bool)
 
 ---
 
-3. Apartment UID
-
-Apartments are sub-units under a Property.
-
-Structure
-
-[PROPERTY_UID]/APTMT/[SEQ_NO]
-
-[PROPERTY_UID] → Parent property code.
-
-APTMT → Keyword for apartment.
-
-SEQ_NO → Apartment number (01, 02, 03...).
-
-
-Example
-
-NGN01/08/20/05/APTMT/01
-
-Regex Validation
-
-^NGN\d{2}/\d{2}/\d{2}/\d{2}/APTMT/\d{2}$
-
+### Wallet
+- `id` (PK)
+- `user` (FK → User)
+- `balance`
+- `currency`
+- `created_at`
 
 ---
 
-4. Tenant UID
-
-Tenants are segmented by state & LGA where they register.
-
-Structure
-
-TNT/[STATE_CODE]/[LGA_CODE]/[SEQ_NO]
-
-TNT → Tenant prefix.
-
-STATE_CODE → 2-digit state code.
-
-LGA_CODE → 2-digit LGA code.
-
-SEQ_NO → Sequential number of tenant in that LGA.
-
-
-Example
-
-TNT/01/08/00045
-
-Meaning: Tenant registered in Lagos State (01), Alimosho LGA (08), 45th tenant.
-
-Regex Validation
-
-^TNT/\d{2}/\d{2}/\d{5}$
-
+### Property
+- `id` (PK)
+- `manager` (FK → User[role=manager])
+- `address`
+- `city`
+- `country`
+- `status` (available, occupied)
 
 ---
 
-5. Agent UID
-
-Agents also follow location-based UIDs, with an AGT prefix.
-
-Structure
-
-AGT/[STATE_CODE]/[LGA_CODE]/[SEQ_NO]
-
-AGT → Agent prefix.
-
-STATE_CODE → 2-digit state code.
-
-LGA_CODE → 2-digit LGA code.
-
-SEQ_NO → Sequential number of agent in that LGA.
-
-
-Example
-
-AGT/01/08/0012
-
-Meaning: Agent registered in Lagos State (01), Alimosho LGA (08), 12th agent.
-
-Regex Validation
-
-^AGT/\d{2}/\d{2}/\d{4}$
-
+### Apartment
+- `id` (PK)
+- `property` (FK → Property)
+- `unit_number`
+- `tenant` (FK → User[role=tenant], nullable)
+- `status` (vacant, occupied)
 
 ---
 
-6. Rules
-
-1. Uniqueness:
-
-Each UID must be unique across the system.
-
-Generated via a central UID service (scripts/generate-uids.ts).
-
-
-
-2. Human-readability:
-
-Encodes country → state → LGA → entity.
-
-Easier for landlords, tenants, and admins to verify.
-
-
-
-3. Auto-Incremented:
-
-SEQ_NO values auto-increment per LGA.
-
-No two tenants in the same LGA will share the same sequence.
-
-
-
-4. Mapping:
-
-Tenant UID + Apartment UID establishes occupancy link.
-
-Agent UID + Property UID establishes listing ownership.
-
-
-
-
+### Bill
+- `id` (PK)
+- `apartment` (FK → Apartment)
+- `type` (rent, utility, community, other)
+- `amount`
+- `due_date`
+- `status` (pending, paid)
 
 ---
 
-7. Example Mappings
-
-Tenant-to-Apartment Mapping
-
-Tenant: TNT/01/08/00045
-Apartment: NGN01/08/20/05/APTMT/01
-→ This tenant is linked to Apartment 01 at Property NGN01/08/20/05
-
-Agent-to-Listing Mapping
-
-Agent: AGT/01/08/0012
-Property: NGN01/08/20/05
-→ This agent is responsible for listing Property NGN01/08/20/05
-
-
+### Payment
+- `id` (PK)
+- `wallet` (FK → Wallet)
+- `bill` (FK → Bill)
+- `amount`
+- `method` (wallet, transfer)
+- `status` (initiated, confirmed, failed)
 
 ---
 
-⚡ With this scheme, IDs are predictable, regex-validatable, and location-aware, making it easy to query/filter users and assets across the SaaS.
-
+### Notification
+- `id` (PK)
+- `user` (FK → User)
+- `channel` (email, sms, whatsapp)
+- `message`
+- `status` (sent, failed)
 
 ---
 
-👉 Do you want me to also draft the TypeScript UID generator functions (scripts/generate-uids.ts) that follow these regex patterns, so IDs are auto-generated instead of manually entered?
-
+## UID System
+- Every user, property, wallet, and apartment receives a globally unique `uid`.
+- UIDs are generated at creation and immutable.
