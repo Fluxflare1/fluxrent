@@ -1,6 +1,6 @@
 from celery import shared_task
 from django.utils.timezone import now
-from bills.models import Invoice
+from bills.models import Invoice, PaymentRecord  # ← ADD PaymentRecord import
 from .models import StandingOrder, WalletTransaction
 
 @shared_task
@@ -28,12 +28,21 @@ def process_standing_orders():
                 wallet.balance -= invoice.amount
                 wallet.save()
 
+                # Create wallet transaction
                 WalletTransaction.objects.create(
                     wallet=wallet,
                     txn_type="auto_deduct",
                     amount=invoice.amount,
                     description=f"Auto-deduction for Invoice {invoice.uid}",
                     status="success"
+                )
+
+                # CREATE PaymentRecord for billing system tracking
+                PaymentRecord.objects.create(
+                    invoice=invoice,
+                    amount_paid=invoice.amount,
+                    paid_at=now(),
+                    method="wallet_auto"  # ← NEW: Record the payment method
                 )
 
                 invoice.status = "paid"
