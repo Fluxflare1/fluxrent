@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Wallet, WalletTransaction, WalletSecurity
-
+from .models import StandingOrder
 
 class WalletSerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,3 +20,12 @@ class WalletSecuritySerializer(serializers.ModelSerializer):
     class Meta:
         model = WalletSecurity
         fields = ["id", "wallet", "transaction_pin", "two_factor_enabled"]
+
+
+
+
+class StandingOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StandingOrder
+        fields = ["id", "uid", "wallet", "tenant_apartment", "pay_all_bills", "bill_types", "is_active", "created_at"]
+        read_only_fields = ["uid", "created_at"]
