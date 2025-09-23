@@ -7,10 +7,10 @@ urlpatterns = [
     path("api/users/", include("users.urls")),
     path("api/", include("properties.urls")),
     path("api/tenants/", include("tenants.urls")),  # ✅ Tenants bonding system
+    path("api/wallet/", include("wallet.urls")),  # ✅ Digital wallet
 
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/docs/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
-
 
