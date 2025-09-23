@@ -1,80 +1,82 @@
 import uuid
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
+from django.conf import settings
+from .managers import UserManager
 
 
-class UserManager(BaseUserManager):
-    """Custom user manager for FluxRent User model."""
-
-    def create_user(self, email, password=None, **extra_fields):
-        if not email:
-            raise ValueError("Email is required")
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        user.set_password(password)
-        user.uid = uuid.uuid4()
-        user.save(using=self._db)
-        return user
-
-    def create_superuser(self, email, password=None, **extra_fields):
-        extra_fields.setdefault("role", User.Role.OWNER)
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
-
-        if extra_fields.get("role") != User.Role.OWNER:
-            raise ValueError("Superuser must have role = OWNER")
-
-        return self.create_user(email, password, **extra_fields)
+def generate_uid(prefix: str, seq: int, width: int = 6) -> str:
+    return f"{prefix.upper()}/{str(seq).zfill(width)}"
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    """Custom user model with UID, KYC, and role system."""
-
-    class Role(models.TextChoices):
-        BASE = "base", "Base User"
-        TENANT = "tenant", "Tenant"
+    """
+    Custom user model with domain roles and KYC relation.
+    UID is generated on save.
+    """
+    class Roles(models.TextChoices):
+        PLATFORM_OWNER = "platform_owner", "Platform Owner"
+        PROPERTY_MANAGER = "property_manager", "Property Manager"
         AGENT = "agent", "Agent"
-        MANAGER = "manager", "Property Manager"
-        OWNER = "owner", "Platform Owner"
+        TENANT = "tenant", "Tenant"
+        STAFF = "staff", "Staff"
+        VIEWER = "viewer", "Viewer"
 
-    uid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    uid = models.CharField(max_length=64, unique=True, blank=True, null=True, editable=False)
     email = models.EmailField(unique=True)
-    phone_number = models.CharField(max_length=20, unique=True)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-
-    role = models.CharField(
-        max_length=20,
-        choices=Role.choices,
-        default=Role.BASE,
-    )
-    kyc_completed = models.BooleanField(default=False)
-
+    first_name = models.CharField(max_length=80, blank=True)
+    last_name = models.CharField(max_length=80, blank=True)
+    phone_number = models.CharField(max_length=32, blank=True)
+    role = models.CharField(max_length=32, choices=Roles.choices, default=Roles.VIEWER)
     is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)  # Django admin UI; NOT used for domain role checks
     date_joined = models.DateTimeField(default=timezone.now)
 
     objects = UserManager()
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["first_name", "last_name", "phone_number"]
+    REQUIRED_FIELDS = []
+
+    class Meta:
+        ordering = ["-date_joined"]
 
     def __str__(self):
-        return f"{self.email} ({self.role})"
+        return f"{self.email}"
+
+    def save(self, *args, **kwargs):
+        if not self.uid:
+            # simple uid: USR/000001-like
+            last = self.__class__.objects.order_by("-date_joined").first()
+            seq = 1
+            if last and last.uid:
+                try:
+                    seq = int(last.uid.split("/")[-1]) + 1
+                except Exception:
+                    seq = self.__class__.objects.count() + 1
+            self.uid = generate_uid("USR", seq, width=6)
+        super().save(*args, **kwargs)
 
 
 class KYC(models.Model):
-    """Stores user KYC information."""
-
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="kyc")
-    date_of_birth = models.DateField()
-    national_id_number = models.CharField(max_length=50, unique=True)
-    address = models.TextField()
-    city = models.CharField(max_length=100)
-    country = models.CharField(max_length=100)
+    """
+    KYC data for user. Created/updated by user or admin.
+    """
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="kyc")
+    full_name = models.CharField(max_length=255, blank=True)
+    address = models.TextField(blank=True)
+    bvn = models.CharField(max_length=32, blank=True, null=True)
+    id_number = models.CharField(max_length=128, blank=True, null=True)
+    id_type = models.CharField(max_length=64, blank=True, null=True)
     verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "KYC"
+        verbose_name_plural = "KYC"
 
     def __str__(self):
-        return f"KYC for {self.user.email} - {'Verified' if self.verified else 'Pending'}"
+        return f"KYC({self.user.email})"
