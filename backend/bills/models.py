@@ -55,14 +55,3 @@ class PaymentRecord(models.Model):
     def __str__(self):
         return f"Payment {self.uid} - {self.amount_paid}"
 
-
-
-
-class Invoice(models.Model):
-    uid = models.CharField(max_length=20, unique=True, default=lambda: generate_uid("INV"))
-    tenant_apartment = models.ForeignKey("tenants.TenantApartment", on_delete=models.CASCADE, related_name="invoices")
-    category = models.CharField(max_length=50, default="rent")  # e.g., rent, utilities
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
-    due_date = models.DateField()
-    status = models.CharField(max_length=20, choices=[("pending", "Pending"), ("paid", "Paid")], default="pending")
-    created_at = models.DateTimeField(auto_now_add=True)
