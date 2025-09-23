@@ -1,6 +1,9 @@
 from rest_framework import viewsets, permissions
 from .models import Wallet, WalletTransaction, WalletSecurity
 from .serializers import WalletSerializer, WalletTransactionSerializer, WalletSecuritySerializer
+from .models import StandingOrder
+from .serializers import StandingOrderSerializer
+
 
 
 class WalletViewSet(viewsets.ModelViewSet):
@@ -26,6 +29,17 @@ class WalletTransactionViewSet(viewsets.ModelViewSet):
 class WalletSecurityViewSet(viewsets.ModelViewSet):
     queryset = WalletSecurity.objects.all()
     serializer_class = WalletSecuritySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(wallet__user=self.request.user)
+
+
+
+
+class StandingOrderViewSet(viewsets.ModelViewSet):
+    queryset = StandingOrder.objects.all()
+    serializer_class = StandingOrderSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
