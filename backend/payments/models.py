@@ -1,7 +1,6 @@
-# backend/payments/models.py
 import uuid
 from decimal import Decimal
-from django.db import models
+from django.db import models, transaction
 from django.conf import settings
 from django.utils import timezone
 from django.db.models import Sum
@@ -10,12 +9,61 @@ def generate_uid(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:10].upper()}"
 
 
+class Prepayment(models.Model):
+    """
+    A prepayment (fund) created by a user that sits as available balance
+    until applied to an invoice.
+    """
+    uid = models.CharField(max_length=40, unique=True, default=lambda: generate_uid("PRE"))
+    tenant = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="prepayments")
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    remaining = models.DecimalField(max_digits=14, decimal_places=2)
+    reference = models.CharField(max_length=255, blank=True, null=True, help_text="External reference (gateway/bank/ref)")
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["tenant"]),
+            models.Index(fields=["uid"]),
+        ]
+
+    def __str__(self):
+        return f"Prepayment {self.uid} - {self.tenant} - {self.remaining}/{self.amount}"
+
+    def apply(self, invoice, amount):
+        """
+        Apply up to `amount` from this prepayment to the given invoice.
+        Returns the actual applied Decimal amount.
+        """
+        if not self.is_active or self.remaining <= Decimal("0.00"):
+            return Decimal("0.00")
+
+        to_apply = min(self.remaining, Decimal(amount))
+        if to_apply <= Decimal("0.00"):
+            return Decimal("0.00")
+
+        # Create allocation record
+        allocation = PaymentAllocation.objects.create(
+            prepayment=self,
+            invoice=invoice,
+            amount=to_apply,
+            allocated_at=timezone.now(),
+        )
+
+        # Decrement remaining
+        self.remaining = (self.remaining - to_apply).quantize(Decimal("0.01"))
+        if self.remaining <= Decimal("0.00"):
+            self.remaining = Decimal("0.00")
+            self.is_active = False
+        self.save(update_fields=["remaining", "is_active"])
+        return to_apply
+
+
 class PaymentRecord(models.Model):
     """
     Canonical Payment record used by the whole system.
-    - invoice: nullable to allow prepayments/advances (payments not yet allocated).
-    - tenant: user who owns/initiates the payment (for prepayments/ wallet)
-    - confirmed_by: PM who confirmed manual payments when applicable
     """
     PAYMENT_METHODS = [
         ("bank", "Bank Transfer"),
@@ -33,14 +81,13 @@ class PaymentRecord(models.Model):
     ]
 
     uid = models.CharField(max_length=30, unique=True, default=lambda: generate_uid("PAY"))
-    # invoice is nullable to support prepayments (advance) not yet allocated to an invoice
+    # invoice is nullable to support legacy prepayments during migration
     invoice = models.ForeignKey("bills.Invoice", on_delete=models.CASCADE, related_name="payments", null=True, blank=True)
     tenant = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="payment_records")
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
     method = models.CharField(max_length=30, choices=PAYMENT_METHODS)
     reference = models.CharField(max_length=255, blank=True, null=True, help_text="External txn ref (gateway, bank, etc.)")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="success")
-    # who confirmed (for manual/bank/cash). Could be PM or system account for gateway confirmations.
     confirmed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -67,7 +114,6 @@ class PaymentRecord(models.Model):
     def mark_invoice_paid_if_fully_settled(self):
         """
         When a new successful payment is created, evaluate invoice settlement.
-        Sums all successful PaymentRecord instances linked to this invoice and marks it paid when total >= invoice.total_amount.
         """
         if not self.invoice:
             return
@@ -85,11 +131,8 @@ class PaymentRecord(models.Model):
 
     def apply_to_invoice(self, invoice, amount=None):
         """
-        Apply (part of) this payment (prepayment) to an invoice.
-        - If this PaymentRecord already has an invoice (non-prepayment), raising is safer.
-        - This creates a new PaymentRecord referencing the target invoice and reduces this record amount accordingly,
-          or marks it fully applied (we'll record applications by splitting records).
-        Returns: (applied_record, remainder_record_or_none)
+        Legacy method for backward compatibility during migration.
+        Use Prepayment.apply() for new code.
         """
         if self.invoice:
             raise ValueError("This payment record is already attached to an invoice.")
@@ -105,7 +148,7 @@ class PaymentRecord(models.Model):
         if apply_amount <= 0:
             raise ValueError("apply amount must be positive.")
 
-        # Create a new payment record attached to the invoice representing allocation
+        # Create a new payment record attached to the invoice
         applied = PaymentRecord.objects.create(
             invoice=invoice,
             tenant=self.tenant,
@@ -117,16 +160,34 @@ class PaymentRecord(models.Model):
             confirmed_at=self.confirmed_at,
         )
 
-        # Reduce or delete the original (prepayment) record amount
+        # Reduce or delete the original record amount
         remainder = self.amount - apply_amount
         if remainder <= 0:
-            # fully consumed: mark original as applied/zeroed out (we keep it but set amount to 0 and optionally annotate)
             self.amount = Decimal("0")
-            # Keep original as historical prepayment with amount 0 (could add a field 'is_consumed' if desired)
             self.save(update_fields=["amount"])
             return applied, None
         else:
-            # partially consumed: adjust original amount
             self.amount = remainder
             self.save(update_fields=["amount"])
             return applied, self
+
+
+class PaymentAllocation(models.Model):
+    """
+    Records application of a Prepayment to an Invoice (audit trail).
+    """
+    uid = models.CharField(max_length=40, unique=True, default=lambda: generate_uid("PAL"))
+    prepayment = models.ForeignKey(Prepayment, on_delete=models.CASCADE, related_name="allocations")
+    invoice = models.ForeignKey("bills.Invoice", on_delete=models.CASCADE, related_name="allocations")
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    allocated_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-allocated_at"]
+        indexes = [
+            models.Index(fields=["prepayment"]),
+            models.Index(fields=["invoice"]),
+        ]
+
+    def __str__(self):
+        return f"Alloc {self.uid} - {self.prepayment.uid} -> {self.invoice.uid} : {self.amount}"
