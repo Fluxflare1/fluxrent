@@ -1,16 +1,16 @@
-from rest_framework import viewsets, permissions, status  # Added status from Code2
+from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
-from rest_framework.decorators import action  # From Code2
-from .models import Invoice, BillItem, PaymentRecord  # Keep BillItem from Code1
-from .serializers import InvoiceSerializer, BillItemSerializer, PaymentRecordSerializer  # Keep BillItemSerializer
-from wallet.models import Wallet, WalletTransaction  # From Code2
+from rest_framework.decorators import action
+from .models import Invoice, BillItem, PaymentRecord
+from .serializers import InvoiceSerializer, BillItemSerializer, PaymentRecordSerializer
+from wallet.models import Wallet, WalletTransaction
 
 class InvoiceViewSet(viewsets.ModelViewSet):
     queryset = Invoice.objects.all()
     serializer_class = InvoiceSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):  # From Code2 - IMPORTANT ROLE-BASED FILTERING
+    def get_queryset(self):
         user = self.request.user
         if user.role == "tenant":
             return self.queryset.filter(tenant_apartment__tenant=user)
@@ -18,7 +18,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             return self.queryset.filter(tenant_apartment__property__manager=user)
         return Invoice.objects.none()
 
-class BillItemViewSet(viewsets.ModelViewSet):  # KEEP FROM CODE1
+class BillItemViewSet(viewsets.ModelViewSet):
     queryset = BillItem.objects.all()
     serializer_class = BillItemSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -28,7 +28,7 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
     serializer_class = PaymentRecordSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):  # From Code2 - IMPORTANT ROLE-BASED FILTERING
+    def get_queryset(self):
         user = self.request.user
         if user.role == "tenant":
             return self.queryset.filter(invoice__tenant_apartment__tenant=user)
@@ -37,7 +37,7 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
         return PaymentRecord.objects.none()
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
-    def pay_with_wallet(self, request, pk=None):  # From Code2 - NEW FEATURE
+    def pay_with_wallet(self, request, pk=None):
         """
         Tenant triggers manual wallet payment.
         """
@@ -47,7 +47,8 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
         if invoice.is_paid:
             return Response({"error": "Invoice already paid"}, status=status.HTTP_400_BAD_REQUEST)
 
-        wallet = Wallet.objects.filter(user=user, wallet_type="personal").first()
+        # FIXED: Simple wallet lookup without wallet_type
+        wallet = Wallet.objects.filter(user=user).first()
         if not wallet:
             return Response({"error": "No wallet found for this user"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -78,7 +79,7 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
         return Response(PaymentRecordSerializer(payment).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
-    def confirm_cash(self, request, pk=None):  # From Code2 - NEW FEATURE
+    def confirm_cash(self, request, pk=None):
         """
         Property Manager confirms cash payment.
         """
