@@ -45,3 +45,10 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "issued_at", "due_date", "is_paid", "items", "payments"
         ]
         read_only_fields = ["uid", "issued_at", "is_paid"]
+
+
+
+class BankCardPaymentSerializer(serializers.Serializer):
+    invoice_id = serializers.IntegerField()
+    txn_reference = serializers.CharField(max_length=255)
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
