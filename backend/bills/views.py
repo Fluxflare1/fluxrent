@@ -2,8 +2,10 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import Invoice, BillItem, PaymentRecord
-from .serializers import InvoiceSerializer, BillItemSerializer, PaymentRecordSerializer
+from .serializers import InvoiceSerializer, BillItemSerializer, PaymentRecordSerializer, BankCardPaymentSerializer
 from wallet.models import Wallet, WalletTransaction
+from django.utils.timezone import now
+
 
 class InvoiceViewSet(viewsets.ModelViewSet):
     queryset = Invoice.objects.all()
@@ -102,3 +104,59 @@ class PaymentRecordViewSet(viewsets.ModelViewSet):
         invoice.save()
 
         return Response(PaymentRecordSerializer(payment).data, status=status.HTTP_201_CREATED)
+
+
+
+
+
+class PaymentRecordViewSet(viewsets.ModelViewSet):
+    # ... (keep existing code)
+
+    @action(detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    def pay_with_bank_card(self, request):
+        """
+        Tenant pays invoice using Bank/Card (via external payment gateway).
+        """
+        serializer = BankCardPaymentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        invoice_id = serializer.validated_data["invoice_id"]
+        txn_reference = serializer.validated_data["txn_reference"]
+        amount = serializer.validated_data["amount"]
+
+        try:
+            invoice = Invoice.objects.get(id=invoice_id)
+        except Invoice.DoesNotExist:
+            return Response({"error": "Invoice not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if invoice.is_paid:
+            return Response({"error": "Invoice already paid"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 🔹 Simulated verification of external gateway transaction
+        # TODO: replace with actual gateway verification API call
+        payment_verified = True  
+
+        if not payment_verified:
+            return Response({"error": "Payment could not be verified"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if amount < invoice.total_amount:
+            return Response({"error": "Insufficient payment amount"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Mark invoice as paid
+        invoice.is_paid = True
+        invoice.save()
+
+        # Create PaymentRecord
+        payment = PaymentRecord.objects.create(
+            invoice=invoice,
+            amount_paid=amount,
+            method="bank_card",
+        )
+
+        return Response({
+            "message": "Payment successful",
+            "payment": PaymentRecordSerializer(payment).data,
+            "txn_reference": txn_reference,
+            "paid_at": now()
+        }, status=status.HTTP_201_CREATED)
+
