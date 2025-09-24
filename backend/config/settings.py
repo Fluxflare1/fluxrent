@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # in INSTALLED_APPS
 
     # Third-party
     "rest_framework",
@@ -185,3 +186,14 @@ SENTRY_DSN = env("SENTRY_DSN", default="")
 # settings.py additions
 PAYSTACK_SECRET_KEY = env("PAYSTACK_SECRET_KEY", default="")  # ensure you set in .env
 PAYSTACK_PUBLIC_KEY = env("PAYSTACK_PUBLIC_KEY", default="")  # optional
+
+
+
+# in INSTALLED_APPS
+...
+"payments.apps.PaymentsConfig",
+...
+
+
+
+
