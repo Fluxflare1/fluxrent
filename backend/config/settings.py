@@ -180,3 +180,8 @@ PAYSTACK_PUBLIC_KEY = env("PAYSTACK_PUBLIC_KEY", default="")
 
 # Other
 SENTRY_DSN = env("SENTRY_DSN", default="")
+
+
+# settings.py additions
+PAYSTACK_SECRET_KEY = env("PAYSTACK_SECRET_KEY", default="")  # ensure you set in .env
+PAYSTACK_PUBLIC_KEY = env("PAYSTACK_PUBLIC_KEY", default="")  # optional
