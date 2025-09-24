@@ -7,3 +7,4 @@ router.register(r"items", BillItemViewSet, basename="billitem")
 router.register(r"payments", PaymentRecordViewSet, basename="payment")
 
 urlpatterns = router.urls
+
