@@ -1,7 +1,9 @@
 // frontend/components/listings/MapView.tsx
 "use client";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-markercluster";
 import "leaflet/dist/leaflet.css";
+import "react-leaflet-markercluster/dist/styles.min.css";
 import L from "leaflet";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -31,23 +33,25 @@ export default function MapView({ listings, center = [6.5244, 3.3792], zoom = 11
     <div className="w-full h-96 rounded-lg overflow-hidden border">
       <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }} whenCreated={(map) => { if (bounds && bounds.length) map.fitBounds(bounds); }}>
         <TileLayer attribution='&copy; <a href="https://osm.org/copyright">OSM</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        {listings.map((l) => {
-          if (!l.location?.coordinates) return null;
-          const [lng, lat] = l.location.coordinates;
-          return (
-            <Marker key={l.id} position={[lat, lng]}>
-              <Popup>
-                <div className="max-w-xs">
-                  <div className="font-semibold">{l.title}</div>
-                  <div className="text-sm text-gray-600">₦{Number(l.price).toLocaleString()}</div>
-                  <div className="mt-2">
-                    <Link href={`/properties/${l.id}`} className="text-blue-600 text-sm">View listing</Link>
+        <MarkerClusterGroup>
+          {listings.map((l) => {
+            if (!l.location?.coordinates) return null;
+            const [lng, lat] = l.location.coordinates;
+            return (
+              <Marker key={l.id} position={[lat, lng]}>
+                <Popup>
+                  <div className="max-w-xs">
+                    <div className="font-semibold">{l.title}</div>
+                    <div className="text-sm text-gray-600">₦{Number(l.price).toLocaleString()}</div>
+                    <div className="mt-2">
+                      <Link href={`/properties/${l.id}`} className="text-blue-600 text-sm">View listing</Link>
+                    </div>
                   </div>
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
+                </Popup>
+              </Marker>
+            );
+          })}
+        </MarkerClusterGroup>
       </MapContainer>
     </div>
   );
