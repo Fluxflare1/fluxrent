@@ -12,13 +12,14 @@ env = environ.Env(
 )
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
-# SECURITY
+# Security
 SECRET_KEY = env("SECRET_KEY", default="insecure-key")
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
 
 # Applications
 INSTALLED_APPS = [
+    # Django core
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -35,10 +36,11 @@ INSTALLED_APPS = [
 
     # Local apps
     "users.apps.UsersConfig",
-    "tenants.apps.TenantsConfig",
     "properties.apps.PropertiesConfig",
+    "bills.apps.BillsConfig",
+    "wallets.apps.WalletsConfig",
     "payments.apps.PaymentsConfig",
-    "notifications.apps.NotificationsConfig",
+    "tenants.apps.TenantsConfig",
 ]
 
 MIDDLEWARE = [
