@@ -140,3 +140,46 @@ export async function fetchListingServer(id: string, options: RequestInit = {}) 
 }
 
 export default API;
+
+
+
+
+
+
+
+
+
+// frontend/lib/api.ts
+import axios from "axios";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+
+// Axios instance without auth (for login/refresh/register)
+export const api = axios.create({
+  baseURL: API_BASE,
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
+  withCredentials: false, // we use localStorage tokens; set true if using http-only cookies
+});
+
+export const authApi = axios.create({
+  baseURL: API_BASE,
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
+  withCredentials: false,
+});
+
+// Interceptor will be attached at runtime inside AuthProvider
+export const ENDPOINTS = {
+  token: "/api/auth/token/",
+  tokenRefresh: "/api/auth/token/refresh/",
+  me: "/api/users/me/",
+  register: "/api/users/register/",
+  kyc: "/api/users/kyc/",
+  passwordReset: "/api/auth/password-reset/",
+  passwordResetConfirm: "/api/auth/password-reset/confirm/",
+};
