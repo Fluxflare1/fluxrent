@@ -27,3 +27,4 @@ class ListingEngagement(models.Model):
 
     def __str__(self):
         return f"Engagement for {self.listing.title}: {self.views} views, {self.inspections} inspections"
+
