@@ -58,3 +58,9 @@ export const ENDPOINTS = {
   passwordResetConfirm: "/api/auth/password-reset/confirm/",
   listings: "/api/properties/listings/",
 };
+
+
+export async function fetchListings(params?: Record<string, any>) {
+  const res = await api.get("/api/properties/listings/", { params });
+  return res.data;
+}
