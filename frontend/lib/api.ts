@@ -106,3 +106,54 @@ export async function fetchListingServer(id: string) {
 }
 
 export default API;
+
+
+
+
+
+
+
+
+// frontend/lib/api.ts
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+/**
+ * Build query string from an object of params.
+ * We use 'qs' in components but here keep simple helper.
+ */
+function buildQuery(params: Record<string, any>) {
+  const esc = encodeURIComponent;
+  const query = Object.entries(params || {})
+    .filter(([_, v]) => v !== undefined && v !== null && v !== "")
+    .map(([k, v]) => {
+      // arrays
+      if (Array.isArray(v)) {
+        return v.map((val) => `${esc(k)}=${esc(String(val))}`).join("&");
+      }
+      return `${esc(k)}=${esc(String(v))}`;
+    })
+    .join("&");
+  return query ? `?${query}` : "";
+}
+
+export async function fetchListings(params: Record<string, any> = {}) {
+  const query = buildQuery(params);
+  const res = await fetch(`${API_BASE}/properties/listings/${query}`, {
+    // cache control handled by Next.js page components as desired
+    next: { revalidate: 60 }, // 60s ISR if used in server components
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to fetch listings: ${res.status} ${text}`);
+  }
+  return res.json();
+}
+
+export async function fetchListing(id: string) {
+  const res = await fetch(`${API_BASE}/properties/listings/${id}/`, {
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) throw new Error("Failed to fetch listing");
+  return res.json();
+}
+
