@@ -21,3 +21,5 @@ router.register(r"optimizations", SearchOptimizationViewSet, basename="optimizat
 urlpatterns = router.urls + [
     path("reports/engagement/", EngagementReportView.as_view(), name="engagement-report"),
 ]
+
+
