@@ -4,18 +4,9 @@ from rest_framework.routers import DefaultRouter
 from django.urls import path, include
 from .views import PaymentRecordViewSet
 from . import reports
-from .views.listings import (
-    PropertyListingViewSet,
-    ListingPhotoViewSet,
-    InspectionBookingViewSet,
-    SearchOptimizationViewSet,
-)
+
 
 router = DefaultRouter()
-router.register(r"listings", PropertyListingViewSet, basename="listing")
-router.register(r"photos", ListingPhotoViewSet, basename="listing-photo")
-router.register(r"inspections", InspectionBookingViewSet, basename="inspection")
-router.register(r"optimizations", SearchOptimizationViewSet, basename="optimization")
 router.register(r"payments", PaymentRecordViewSet, basename="payment")
 
 urlpatterns = [
