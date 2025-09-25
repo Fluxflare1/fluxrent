@@ -52,3 +52,5 @@ def update_listing_ranking(listing):
         # Log the error in production; consider using logging.getLogger(__name__)
         # logger.error(f"Failed to update ranking for listing {listing.id}: {str(e)}")
         pass  # Fail silently in signal to prevent transaction issues
+
+
