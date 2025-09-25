@@ -72,3 +72,54 @@ class SearchOptimizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = SearchOptimization
         fields = ["id", "listing", "is_featured", "boost_score", "updated_at"]
+
+
+
+
+class PropertyListingSerializer(serializers.ModelSerializer):
+    photos = ListingPhotoSerializer(many=True, read_only=True)
+    optimization = serializers.SerializerMethodField()
+    engagement = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PropertyListing
+        fields = [
+            "id",
+            "property_uid",
+            "owner",
+            "agent",
+            "listing_type",
+            "title",
+            "slug",
+            "description",
+            "price",
+            "service_charge",
+            "bedrooms",
+            "bathrooms",
+            "toilets",
+            "facilities",
+            "location",
+            "is_published",
+            "ranking_score",
+            "photos",
+            "optimization",
+            "engagement",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_optimization(self, obj):
+        if hasattr(obj, "optimization"):
+            return {
+                "is_featured": obj.optimization.is_featured,
+                "boost_score": obj.optimization.boost_score,
+            }
+        return None
+
+    def get_engagement(self, obj):
+        if hasattr(obj, "engagement"):
+            return {
+                "views": obj.engagement.views,
+                "inspections": obj.engagement.inspections,
+            }
+        return {"views": 0, "inspections": 0}
