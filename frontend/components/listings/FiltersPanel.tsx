@@ -21,12 +21,14 @@ export default function FiltersPanel({ initial }: { initial?: Record<string, any
   const [radius, setRadius] = useState(getParam("radius") || "10"); // km
   const [lat, setLat] = useState(getParam("lat") || "");
   const [lng, setLng] = useState(getParam("lng") || "");
+  const [sort, setSort] = useState(getParam("ordering") || "");
 
   useEffect(() => {
     // sync initial values if provided
     if (initial) {
       setQ(initial.q || "");
       setListingType(initial.listing_type || "");
+      setSort(initial.ordering || "");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -45,6 +47,7 @@ export default function FiltersPanel({ initial }: { initial?: Record<string, any
       radius: radius || undefined,
       lat: lat || undefined,
       lng: lng || undefined,
+      ordering: sort || undefined,
       ...overrides,
     };
     // remove falsy
@@ -65,7 +68,7 @@ export default function FiltersPanel({ initial }: { initial?: Record<string, any
     // update on search q change with debounce
     debouncedApply();
     return () => debouncedApply.cancel();
-  }, [q, listingType, minPrice, maxPrice, bedrooms, bathrooms, radius, lat, lng]);
+  }, [q, listingType, minPrice, maxPrice, bedrooms, bathrooms, radius, lat, lng, sort]);
 
   const onClear = () => {
     router.push("/properties");
@@ -120,6 +123,20 @@ export default function FiltersPanel({ initial }: { initial?: Record<string, any
       <div className="grid grid-cols-2 gap-2">
         <input value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="Min price" className="border rounded-md p-2" />
         <input value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="Max price" className="border rounded-md p-2" />
+      </div>
+
+      <div>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          className="border rounded-md p-2 w-full"
+        >
+          <option value="">Sort by</option>
+          <option value="-created_at">Newest</option>
+          <option value="price">Price: Low to High</option>
+          <option value="-price">Price: High to Low</option>
+          <option value="-ranking_score">Top Ranked</option>
+        </select>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
