@@ -1,8 +1,7 @@
-
 {
-  "extends": "next/core-web-vitals",
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
+    "module": "ESNext",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -11,12 +10,14 @@
     "noEmit": true,
     "incremental": true,
     "jsx": "preserve",
+    "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
     },
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "types": ["node"],
     "plugins": [{ "name": "next" }]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
