@@ -17,3 +17,4 @@ class ListingViewTrackingMiddleware(MiddlewareMixin):
             except PropertyListing.DoesNotExist:
                 pass
         return None
+
