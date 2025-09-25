@@ -6,6 +6,8 @@ from .views.listings import (
     InspectionBookingViewSet,
     SearchOptimizationViewSet,
 )
+from django.urls import path
+from .views.reports import EngagementReportView
 
 router = DefaultRouter()
 router.register(r"properties", PropertyViewSet, basename="property")
@@ -15,4 +17,7 @@ router.register(r"photos", ListingPhotoViewSet, basename="listing-photo")
 router.register(r"inspections", InspectionBookingViewSet, basename="inspection")
 router.register(r"optimizations", SearchOptimizationViewSet, basename="optimization")
 
-urlpatterns = router.urls
+
+urlpatterns = router.urls + [
+    path("reports/engagement/", EngagementReportView.as_view(), name="engagement-report"),
+]
