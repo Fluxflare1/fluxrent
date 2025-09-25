@@ -39,7 +39,24 @@ API.interceptors.request.use((config) => {
 });
 
 /**
- * Auth endpoints
+ * Query string builder (from code 2)
+ */
+function buildQuery(params: Record<string, any>) {
+  const esc = encodeURIComponent;
+  const query = Object.entries(params || {})
+    .filter(([_, v]) => v !== undefined && v !== null && v !== "")
+    .map(([k, v]) => {
+      if (Array.isArray(v)) {
+        return v.map((val) => `${esc(k)}=${esc(String(val))}`).join("&");
+      }
+      return `${esc(k)}=${esc(String(v))}`;
+    })
+    .join("&");
+  return query ? `?${query}` : "";
+}
+
+/**
+ * Auth endpoints (from code 1)
  */
 export async function signIn(email: string, password: string) {
   const res = await API.post("/users/token/", { email, password });
@@ -73,7 +90,7 @@ export async function requestAccess(payload: { first_name: string; last_name: st
 }
 
 /**
- * Listings endpoints - using axios for consistency
+ * Client-side listings endpoints (using axios with auth)
  */
 export async function fetchListings(params?: Record<string, any>) {
   const res = await API.get("/properties/listings/", { params });
@@ -82,65 +99,17 @@ export async function fetchListings(params?: Record<string, any>) {
 
 export async function fetchListing(id: string) {
   const res = await API.get(`/properties/listings/${id}/`);
-  return res.data;
-}
-
-/**
- * Server-side fetch functions (for Next.js server components)
- * These use native fetch and are separate from the axios instance
- */
-export async function fetchListingsServer() {
-  const res = await fetch(`${API_BASE_URL}/properties/listings/`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error("Failed to fetch listings");
   return res.json();
 }
 
-export async function fetchListingServer(id: string) {
-  const res = await fetch(`${API_BASE_URL}/properties/listings/${id}/`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error("Failed to fetch listing");
-  return res.json();
-}
-
-export default API;
-
-
-
-
-
-
-
-
-// frontend/lib/api.ts
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
 /**
- * Build query string from an object of params.
- * We use 'qs' in components but here keep simple helper.
+ * Server-side listings endpoints (using fetch with caching options)
  */
-function buildQuery(params: Record<string, any>) {
-  const esc = encodeURIComponent;
-  const query = Object.entries(params || {})
-    .filter(([_, v]) => v !== undefined && v !== null && v !== "")
-    .map(([k, v]) => {
-      // arrays
-      if (Array.isArray(v)) {
-        return v.map((val) => `${esc(k)}=${esc(String(val))}`).join("&");
-      }
-      return `${esc(k)}=${esc(String(v))}`;
-    })
-    .join("&");
-  return query ? `?${query}` : "";
-}
-
-export async function fetchListings(params: Record<string, any> = {}) {
+export async function fetchListingsServer(params: Record<string, any> = {}, options: RequestInit = {}) {
   const query = buildQuery(params);
-  const res = await fetch(`${API_BASE}/properties/listings/${query}`, {
-    // cache control handled by Next.js page components as desired
-    next: { revalidate: 60 }, // 60s ISR if used in server components
+  const res = await fetch(`${API_BASE_URL}/properties/listings/${query}`, {
+    next: { revalidate: 60 },
+    ...options
   });
   if (!res.ok) {
     const text = await res.text();
@@ -149,11 +118,13 @@ export async function fetchListings(params: Record<string, any> = {}) {
   return res.json();
 }
 
-export async function fetchListing(id: string) {
-  const res = await fetch(`${API_BASE}/properties/listings/${id}/`, {
+export async function fetchListingServer(id: string, options: RequestInit = {}) {
+  const res = await fetch(`${API_BASE_URL}/properties/listings/${id}/`, {
     next: { revalidate: 60 },
+    ...options
   });
   if (!res.ok) throw new Error("Failed to fetch listing");
   return res.json();
 }
 
+export default API;
