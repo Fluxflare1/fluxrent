@@ -64,3 +64,20 @@ export async function fetchListings(params?: Record<string, any>) {
   const res = await api.get("/api/properties/listings/", { params });
   return res.data;
 }
+
+
+
+// --- Add signOut ---
+export async function signOut() {
+  try {
+    // If you have backend logout endpoint:
+    await axios.post(`${API_URL}/auth/logout/`, {}, { withCredentials: true });
+
+    // If using only frontend-based JWT, just clear token from localStorage:
+    localStorage.removeItem("token");
+    return true;
+  } catch (err) {
+    console.error("Sign out failed:", err);
+    return false;
+  }
+}
