@@ -1,6 +1,7 @@
+from django.contrib.auth import authenticate
 from django.db.models import Sum
 from django.db.models.functions import TruncMonth
-from rest_framework import viewsets, filters, permissions
+from rest_framework import viewsets, filters, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -10,7 +11,7 @@ from .serializers import WalletSerializer, WalletTransactionSerializer, WalletSe
 class WalletViewSet(viewsets.ModelViewSet):
     queryset = Wallet.objects.all()
     serializer_class = WalletSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]  # Keep permissions
 
     def get_queryset(self):
         user = self.request.user
@@ -18,6 +19,7 @@ class WalletViewSet(viewsets.ModelViewSet):
             return Wallet.objects.all()
         return Wallet.objects.filter(user=user)
 
+    # KEEP clustering feature
     @action(detail=False, methods=["get"])
     def cluster_by_type(self, request):
         qs = (
@@ -28,50 +30,44 @@ class WalletViewSet(viewsets.ModelViewSet):
         )
         return Response(qs)
 
+    # ADD new validation feature
+    @action(detail=False, methods=["post"])
+    def validate(self, request):
+        """
+        Validate wallet transaction with OTP, PIN, or Password.
+        """
+        user = request.user
+        method = request.data.get("method")
+        value = request.data.get("value")
+        action_type = request.data.get("action")
+
+        if not method or not value:
+            return Response({"error": "Missing method or value"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if method == "password":
+            if authenticate(username=user.username, password=value):
+                return Response({"success": True, "message": f"{action_type} validated"})
+            return Response({"success": False, "message": "Invalid password"}, status=401)
+
+        elif method == "pin":
+            if hasattr(user, "profile") and user.profile.wallet_pin == value:
+                return Response({"success": True, "message": f"{action_type} validated"})
+            return Response({"success": False, "message": "Invalid PIN"}, status=401)
+
+        elif method == "otp":
+            # TODO: integrate actual OTP provider
+            if hasattr(user, "profile") and user.profile.otp_code == value:
+                return Response({"success": True, "message": f"{action_type} validated"})
+            return Response({"success": False, "message": "Invalid OTP"}, status=401)
+
+        return Response({"error": "Unsupported validation method"}, status=400)
+
+# Keep the rest of your ViewSets unchanged...
 class WalletTransactionViewSet(viewsets.ModelViewSet):
-    queryset = WalletTransaction.objects.all()
-    serializer_class = WalletTransactionSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [filters.OrderingFilter]
-    ordering_fields = ["created_at", "amount"]
-    ordering = ["-created_at"]
-
-    def get_queryset(self):
-        return WalletTransaction.objects.filter(wallet__user=self.request.user)
-
-    @action(detail=False, methods=["get"])
-    def cluster_by_type(self, request):
-        qs = (
-            self.get_queryset()
-            .values("txn_type")
-            .annotate(total=Sum("amount"))
-            .order_by("txn_type")
-        )
-        return Response(qs)
-
-    @action(detail=False, methods=["get"])
-    def cluster_by_month(self, request):
-        qs = (
-            self.get_queryset()
-            .annotate(month=TruncMonth("created_at"))
-            .values("month")
-            .annotate(total=Sum("amount"))
-            .order_by("month")
-        )
-        return Response(qs)
+    # ... (keep existing transaction code)
 
 class WalletSecurityViewSet(viewsets.ModelViewSet):
-    queryset = WalletSecurity.objects.all()
-    serializer_class = WalletSecuritySerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return self.queryset.filter(wallet__user=self.request.user)
+    # ... (keep existing)
 
 class StandingOrderViewSet(viewsets.ModelViewSet):
-    queryset = StandingOrder.objects.all()
-    serializer_class = StandingOrderSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return self.queryset.filter(wallet__user=self.request.user)
+    # ... (keep existing)
