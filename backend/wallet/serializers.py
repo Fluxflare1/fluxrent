@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Wallet, WalletTransaction, WalletSecurity, StandingOrder, PaystackCustomer, DedicatedVirtualAccount  # Added new models
+from .models import Wallet, Transaction, StandingOrder, FixedSaving, Bill
+
 
 class WalletSerializer(serializers.ModelSerializer):
     class Meta:
@@ -40,3 +42,32 @@ class PaystackDvaSerializer(serializers.ModelSerializer):
         model = DedicatedVirtualAccount
         fields = ["id", "wallet", "paystack_id", "account_number", "bank_name", "currency", "metadata", "created_at"]
         read_only_fields = ["paystack_id", "account_number", "bank_name", "currency", "metadata", "created_at"]
+
+
+
+
+
+class WalletSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Wallet
+        fields = "__all__"
+
+class TransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transaction
+        fields = "__all__"
+
+class StandingOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StandingOrder
+        fields = "__all__"
+
+class BillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Bill
+        fields = "__all__"
+
+class FixedSavingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FixedSaving
+        fields = "__all__"
