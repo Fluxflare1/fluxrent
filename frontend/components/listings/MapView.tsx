@@ -1,4 +1,3 @@
-// frontend/components/listings/MapView.tsx
 "use client";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-markercluster";
@@ -8,7 +7,7 @@ import L from "leaflet";
 import Link from "next/link";
 import { useMemo } from "react";
 
-// fix default icon issue
+// Fix default icon issue for Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -16,36 +15,84 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-export default function MapView({ listings, center = [6.5244, 3.3792], zoom = 11 }: { listings: any[]; center?: [number, number]; zoom?: number; }) {
+interface Listing {
+  id: string;
+  title: string;
+  price: number;
+  location?: {
+    coordinates: [number, number]; // [lng, lat]
+  };
+}
+
+interface MapViewProps {
+  listings: Listing[];
+  center?: [number, number]; // [lat, lng]
+  zoom?: number;
+}
+
+export default function MapView({ 
+  listings, 
+  center = [6.5244, 3.3792], 
+  zoom = 11 
+}: MapViewProps) {
   const bounds = useMemo(() => {
     try {
-      const pts = listings
-        .map((l) => l.location && l.location.coordinates ? [l.location.coordinates[1], l.location.coordinates[0]] : null)
+      const validPoints = listings
+        .map((listing) => {
+          if (!listing.location?.coordinates) return null;
+          const [lng, lat] = listing.location.coordinates;
+          return [lat, lng] as [number, number];
+        })
         .filter(Boolean) as [number, number][];
-      return pts.length ? pts : null;
-    } catch {
+      
+      return validPoints.length > 0 ? validPoints : null;
+    } catch (error) {
+      console.error("Error calculating map bounds:", error);
       return null;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listings]);
 
+  const handleMapCreated = (map: L.Map) => {
+    if (bounds && bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [20, 20] });
+    }
+  };
+
   return (
-    <div className="w-full h-96 rounded-lg overflow-hidden border">
-      <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }} whenCreated={(map) => { if (bounds && bounds.length) map.fitBounds(bounds); }}>
-        <TileLayer attribution='&copy; <a href="https://osm.org/copyright">OSM</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        <MarkerClusterGroup>
-          {listings.map((l) => {
-            if (!l.location?.coordinates) return null;
-            const [lng, lat] = l.location.coordinates;
+    <div className="w-full h-96 rounded-lg overflow-hidden border shadow-md">
+      <MapContainer 
+        center={center} 
+        zoom={zoom} 
+        style={{ height: "100%", width: "100%" }} 
+        whenCreated={handleMapCreated}
+        scrollWheelZoom={false}
+      >
+        <TileLayer 
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <MarkerClusterGroup 
+          chunkedLoading
+          maxClusterRadius={50}
+        >
+          {listings.map((listing) => {
+            if (!listing.location?.coordinates) return null;
+            
+            const [lng, lat] = listing.location.coordinates;
             return (
-              <Marker key={l.id} position={[lat, lng]}>
+              <Marker key={listing.id} position={[lat, lng]}>
                 <Popup>
-                  <div className="max-w-xs">
-                    <div className="font-semibold">{l.title}</div>
-                    <div className="text-sm text-gray-600">₦{Number(l.price).toLocaleString()}</div>
-                    <div className="mt-2">
-                      <Link href={`/properties/${l.id}`} className="text-blue-600 text-sm">View listing</Link>
+                  <div className="max-w-xs p-1">
+                    <div className="font-semibold text-sm mb-1">{listing.title}</div>
+                    <div className="text-xs text-gray-600 mb-2">
+                      ₦{Number(listing.price).toLocaleString()}
                     </div>
+                    <Link 
+                      href={`/properties/${listing.id}`} 
+                      className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                    >
+                      View listing →
+                    </Link>
                   </div>
                 </Popup>
               </Marker>
