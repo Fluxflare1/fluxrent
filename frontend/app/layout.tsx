@@ -1,9 +1,9 @@
-// frontend/app/layout.tsx
 import "../styles/globals.css";
 import { ReactNode } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { AuthProvider } from "@/components/AuthProvider";
+import Head from "next/head";
 
 export const metadata = {
   title: "FluxRent",
@@ -13,6 +13,12 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        />
+      </head>
       <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
         <AuthProvider>
           <Header />
