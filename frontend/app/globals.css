@@ -1,0 +1,3 @@
+@import "../styles/globals.css";
+
+/* shim file so tools/CLIs detect Tailwind + Next app layout */
