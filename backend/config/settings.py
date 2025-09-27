@@ -159,3 +159,8 @@ if SENTRY_DSN:
         traces_sample_rate=1.0,
         send_default_pii=True,
     )
+
+
+SLACK_WEBHOOK_URL = env("SLACK_WEBHOOK_URL", default=None)
+ADMIN_EMAILS = env.list("ADMIN_EMAILS", default=["admin@example.com"])
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@example.com")
