@@ -4,6 +4,7 @@ from django.utils.timezone import now
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from notifications.utils import notify_admins
 
 from payments.models.webhook_event import WebhookEvent
 from wallet.models.transaction import Transaction
@@ -70,6 +71,11 @@ class PaystackWebhookView(APIView):
                 details={"message": "No matching transaction in system", "gateway": "Paystack", "amount": data.get("amount")}
             )
             webhook.mark_processed(success=False)
+
+            notify_admins(
+                subject="Reconciliation Discrepancy",
+                message=f"Paystack reported success for {reference}, but no matching transaction exists."
+            )
 
     def handle_failure(self, reference, data, webhook):
         AuditLog.objects.create(
