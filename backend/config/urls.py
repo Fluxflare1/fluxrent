@@ -5,7 +5,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/users/", include("users.urls")),
-    path("api/", include("properties.urls")),
+    path("api/properties", include("properties.urls")),
     path("api/tenants/", include("tenants.urls")),  # ✅ Tenants bonding system
     path("api/wallet/", include("wallet.urls")),  # ✅ Digital wallet
     path("api/bills/", include("bills.urls")),  # ✅ billing endpoints
