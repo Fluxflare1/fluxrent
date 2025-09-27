@@ -3,6 +3,7 @@ from celery import shared_task
 from wallet.models.transaction import Transaction
 from wallet.models.refund import Refund
 from wallet.models.audit import AuditLog
+from notifications.utils import notify_admins
 
 @shared_task
 def process_auto_refunds():
@@ -53,9 +54,19 @@ def process_auto_refunds():
                 }
             )
 
+            notify_admins(
+                subject="Auto Refund Issued",
+                message=f"Refund for transaction {txn.reference} (₦{refund.total_refund}) has been auto-processed."
+            )
+
         except Exception as e:
             AuditLog.objects.create(
                 reference=txn.reference,
                 action="discrepancy",
                 details={"message": "Auto-refund failed", "error": str(e)}
+            )
+
+            notify_admins(
+                subject="Auto Refund Failed",
+                message=f"Refund for transaction {txn.reference} failed.\nError: {str(e)}"
             )
