@@ -12,4 +12,8 @@ app.conf.beat_schedule = {
         "task": "wallet.tasks.process_standing_orders",
         "schedule": crontab(hour=0, minute=0),  # midnight daily
     },
+    "process-auto-refunds-daily": {
+        "task": "wallet.tasks.refund_tasks.process_auto_refunds",
+        "schedule": crontab(hour=3, minute=0),  # runs daily at 3 AM
+    },
 }
