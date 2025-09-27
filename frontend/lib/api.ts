@@ -121,6 +121,7 @@ export const ENDPOINTS = {
     transactions: "/api/wallets/transactions/",
     audit: "/api/wallet/audit/",
     refunds: "/api/wallet/refunds/",
+    disputes: "/api/wallet/disputes/",
   },
 
   // Finance
@@ -161,4 +162,17 @@ export default {
   api, 
   authApi,
   API_BASE_URL 
+};
+
+
+
+
+
+
+export const ENDPOINTS = {
+  wallet: {
+    refunds: "/api/wallet/refunds/",
+    audit: "/api/wallet/audit/",
+    disputes: "/api/wallet/disputes/",
+  },
 };
