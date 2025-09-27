@@ -81,3 +81,16 @@ export async function signOut() {
     return false;
   }
 }
+
+
+export const ENDPOINTS = {
+  wallet: {
+    balances: "/api/wallets/", // GET list of user wallets
+    validate: "/api/wallets/validate/",
+    fundConfirm: "/api/wallets/fund/confirm/",
+    transfer: "/api/wallets/transfer/",
+    standingOrders: "/api/wallets/standing_orders/",
+    bills: "/api/wallets/bills/",
+    savings: "/api/wallets/savings/",
+  },
+};
