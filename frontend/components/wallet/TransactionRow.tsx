@@ -34,3 +34,46 @@ export default function TransactionRow({ txn, onDispute }: Props) {
     </div>
   );
 }
+
+
+
+
+"use client";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { apiFetch, ENDPOINTS } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+
+export default function TransactionRow({ txn, isAdmin }: { txn: any; isAdmin: boolean }) {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+
+  async function requestRefund() {
+    try {
+      setLoading(true);
+      await apiFetch(`${ENDPOINTS.wallet.refunds}${txn.id}/approve/`, { method: "POST" });
+      toast({ title: "Refund successful", description: `Refund issued for txn ${txn.reference}` });
+    } catch (err: any) {
+      toast({ title: "Refund failed", description: err?.payload?.detail || err.message });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="flex justify-between items-center border-b py-2">
+      <div>
+        <div className="font-medium">{txn.reference}</div>
+        <div className="text-sm text-gray-500">{txn.type}</div>
+      </div>
+      <div>
+        <span className="mr-3">₦{txn.amount}</span>
+        {isAdmin && txn.type !== "refund" && (
+          <Button onClick={requestRefund} disabled={loading} size="sm" variant="destructive">
+            {loading ? "Processing..." : "Refund"}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
