@@ -20,11 +20,3 @@ urlpatterns = [
 
 
 
-
-# backend/config/urls.py  (or your top-level urls)
-from django.urls import path, include
-
-urlpatterns = [
-    # ... existing patterns
-    path("api/finance/", include("finance.urls")),
-]
