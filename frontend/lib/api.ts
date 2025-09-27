@@ -145,3 +145,81 @@ export default {
   authApi,
   API_BASE_URL 
 };
+
+
+
+
+
+
+
+
+// frontend/lib/api.ts
+import axios from "axios";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+export const API_BASE_URL = API_BASE.replace(/\/$/, "");
+
+const TOKEN_KEY = "fluxrent:jwt";
+
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function removeToken() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+export async function apiFetch(path: string, opts: RequestInit = {}, expectJson = true) {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    ...(opts.headers ? (opts.headers as Record<string, string>) : {}),
+  };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: "same-origin",
+    ...opts,
+    headers,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    let payload: any = text;
+    try {
+      payload = JSON.parse(text);
+    } catch {}
+    const err: any = new Error("API request failed");
+    err.status = res.status;
+    err.payload = payload;
+    throw err;
+  }
+  if (!expectJson) return res;
+  return res.json();
+}
+
+export const ENDPOINTS = {
+  wallet: {
+    balances: "/api/wallets/",
+    transactions: "/api/wallets/transactions/",
+    validate: "/api/wallets/validate/",
+  },
+  properties: {
+    listings: "/api/properties/listings/",
+  },
+  finance: {
+    fees: "/api/finance/fees/",
+    audits: "/api/finance/audits/",
+    disputes: "/api/finance/disputes/",
+  },
+};
+
+export default { apiFetch, ENDPOINTS, getToken, setToken, removeToken };
