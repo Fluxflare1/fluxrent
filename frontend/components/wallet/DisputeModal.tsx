@@ -69,3 +69,57 @@ export default function DisputeModal({ auditUid, onClose, onCreated }: Props) {
     </div>
   );
 }
+
+
+
+
+"use client";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { apiFetch, ENDPOINTS } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+
+export default function DisputeModal({ txn, onClose }: { txn: any; onClose: () => void }) {
+  const { toast } = useToast();
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function submitDispute() {
+    try {
+      setLoading(true);
+      await apiFetch(ENDPOINTS.wallet.disputes, {
+        method: "POST",
+        body: JSON.stringify({ transaction_ref: txn.reference, reason }),
+      });
+      toast({ title: "Dispute submitted", description: "Our team will review this transaction." });
+      onClose();
+    } catch (err: any) {
+      toast({ title: "Failed", description: err?.payload?.detail || err.message });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+      <div className="bg-white rounded-xl shadow-lg p-6 w-[400px]">
+        <h2 className="text-lg font-semibold mb-4">Dispute Transaction</h2>
+        <p className="text-sm text-gray-600 mb-3">
+          Reference: <span className="font-mono">{txn.reference}</span>
+        </p>
+        <textarea
+          className="w-full border rounded p-2 text-sm mb-3"
+          placeholder="Enter reason for dispute"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button disabled={loading} onClick={submitDispute}>
+            {loading ? "Submitting..." : "Submit"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
