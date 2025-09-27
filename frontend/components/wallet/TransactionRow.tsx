@@ -74,3 +74,12 @@ export default function TransactionRow({ txn, isAdmin = false, onDispute }: Prop
     </div>
   );
 }
+
+
+
+<div>
+  <span className="mr-3">₦{txn.amount}</span>
+  <span className="text-xs text-gray-500">
+    Fee: ₦{txn.charge} | Net: ₦{txn.net_amount}
+  </span>
+</div>
