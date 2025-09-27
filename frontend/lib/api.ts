@@ -119,6 +119,7 @@ export const ENDPOINTS = {
     savings: "/api/wallets/savings/", // RESTful
     withdrawals: "/api/wallets/withdrawals/", // POST request withdrawal
     transactions: "/api/wallets/transactions/", // GET list
+    audit: "/api/wallet/audit/",
   },
 
   // Finance endpoints (from Code 2 - NEW)
@@ -126,6 +127,11 @@ export const ENDPOINTS = {
     fees: "/api/finance/fees/",
     audits: "/api/finance/audits/",
     disputes: "/api/finance/disputes/",
+  },
+};
+
+payments: {
+    webhook: "/api/payments/webhooks/paystack/",
   },
 };
 
@@ -155,3 +161,4 @@ export default {
   authApi,
   API_BASE_URL 
 };
+
