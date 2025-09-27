@@ -90,9 +90,9 @@ export async function apiFetch(
   return res.json();
 }
 
-// API endpoints map
+// API endpoints map - Merged from both codes
 export const ENDPOINTS = {
-  // Auth
+  // Auth (from Code 1)
   token: "/api/auth/token/",
   tokenRefresh: "/api/auth/token/refresh/",
   me: "/api/users/me/",
@@ -101,10 +101,13 @@ export const ENDPOINTS = {
   passwordReset: "/api/auth/password-reset/",
   passwordResetConfirm: "/api/auth/password-reset/confirm/",
 
-  // Properties
+  // Properties (from Code 1, enhanced with Code 2 structure)
   listings: "/api/properties/listings/",
+  properties: {
+    listings: "/api/properties/listings/",
+  },
 
-  // Wallet
+  // Wallet (from Code 1, kept complete)
   wallet: {
     base: "/api/wallets/", // GET list, POST create
     balances: "/api/wallets/", // GET list of user wallets (alias)
@@ -117,9 +120,16 @@ export const ENDPOINTS = {
     withdrawals: "/api/wallets/withdrawals/", // POST request withdrawal
     transactions: "/api/wallets/transactions/", // GET list
   },
+
+  // Finance endpoints (from Code 2 - NEW)
+  finance: {
+    fees: "/api/finance/fees/",
+    audits: "/api/finance/audits/",
+    disputes: "/api/finance/disputes/",
+  },
 };
 
-// Helpers
+// Helpers (from Code 1)
 export async function fetchListings(params?: Record<string, any>) {
   const res = await api.get(ENDPOINTS.listings, { params });
   return res.data;
@@ -145,81 +155,3 @@ export default {
   authApi,
   API_BASE_URL 
 };
-
-
-
-
-
-
-
-
-// frontend/lib/api.ts
-import axios from "axios";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
-export const API_BASE_URL = API_BASE.replace(/\/$/, "");
-
-const TOKEN_KEY = "fluxrent:jwt";
-
-export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token: string) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function removeToken() {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(TOKEN_KEY);
-}
-
-export async function apiFetch(path: string, opts: RequestInit = {}, expectJson = true) {
-  const token = getToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    ...(opts.headers ? (opts.headers as Record<string, string>) : {}),
-  };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    credentials: "same-origin",
-    ...opts,
-    headers,
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    let payload: any = text;
-    try {
-      payload = JSON.parse(text);
-    } catch {}
-    const err: any = new Error("API request failed");
-    err.status = res.status;
-    err.payload = payload;
-    throw err;
-  }
-  if (!expectJson) return res;
-  return res.json();
-}
-
-export const ENDPOINTS = {
-  wallet: {
-    balances: "/api/wallets/",
-    transactions: "/api/wallets/transactions/",
-    validate: "/api/wallets/validate/",
-  },
-  properties: {
-    listings: "/api/properties/listings/",
-  },
-  finance: {
-    fees: "/api/finance/fees/",
-    audits: "/api/finance/audits/",
-    disputes: "/api/finance/disputes/",
-  },
-};
-
-export default { apiFetch, ENDPOINTS, getToken, setToken, removeToken };
