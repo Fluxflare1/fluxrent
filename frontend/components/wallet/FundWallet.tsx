@@ -1,6 +1,6 @@
+
 "use client";
 
-import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 declare global {
@@ -14,10 +14,14 @@ export default function FundWallet({ email, amount }: { email: string; amount: n
     const handler = window.PaystackPop.setup({
       key: process.env.NEXT_PUBLIC_PAYSTACK_KEY,
       email,
-      amount: amount * 100, // Paystack uses kobo
+      amount: amount * 100,
       callback: function (response: any) {
-        // TODO: Call backend to confirm & credit wallet
-        alert("Payment successful. Ref: " + response.reference);
+        // TODO: POST to backend /wallet/fund/confirm/
+        fetch("/api/wallets/fund/confirm/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reference: response.reference }),
+        });
       },
       onClose: function () {
         alert("Payment window closed.");
