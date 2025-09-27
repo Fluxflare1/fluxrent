@@ -3,7 +3,6 @@ from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 
-
 class Refund(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending"),
@@ -35,6 +34,8 @@ class Refund(models.Model):
         blank=True,
         related_name="refund_approvals"
     )
+    auto_generated = models.BooleanField(default=False, help_text="True if system-created refund")
+    hold_until = models.DateTimeField(null=True, blank=True, help_text="Holding period before refund execution")
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -47,17 +48,6 @@ class Refund(models.Model):
     @property
     def is_completed(self):
         return self.status == "completed"
-
-
-
-
-
-
-class Refund(models.Model):
-    # ... existing fields ...
-
-    auto_generated = models.BooleanField(default=False, help_text="True if system-created refund")
-    hold_until = models.DateTimeField(null=True, blank=True, help_text="Holding period before refund execution")
 
     def set_hold_period(self, days=7):
         self.hold_until = timezone.now() + timedelta(days=days)
