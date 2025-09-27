@@ -1,13 +1,13 @@
 from django.contrib.auth import authenticate
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Sum, Count, Avg
 from django.db.models.functions import TruncMonth
 from rest_framework import viewsets, filters, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Wallet, WalletTransaction, WalletSecurity, StandingOrder
-from .serializers import WalletSerializer, WalletTransactionSerializer, WalletSecuritySerializer, StandingOrderSerializer
+from .models import Wallet, WalletTransaction, WalletSecurity, StandingOrder, Bill, FixedSaving
+from .serializers import WalletSerializer, WalletTransactionSerializer, WalletSecuritySerializer, StandingOrderSerializer, BillSerializer, FixedSavingSerializer
 
 
 class WalletViewSet(viewsets.ModelViewSet):
@@ -23,9 +23,6 @@ class WalletViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def cluster_by_type(self, request):
-        """
-        Group wallet balances by wallet_type (personal, business, etc.)
-        """
         qs = (
             self.get_queryset()
             .values("wallet_type")
@@ -40,9 +37,6 @@ class WalletViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"])
     def validate(self, request):
-        """
-        Validate wallet transaction with OTP, PIN, or Password
-        """
         user = request.user
         method = request.data.get("method")
         value = request.data.get("value")
@@ -62,7 +56,6 @@ class WalletViewSet(viewsets.ModelViewSet):
             return Response({"success": False, "message": "Invalid PIN"}, status=401)
 
         elif method == "otp":
-            # TODO: Integrate with your OTP service
             if hasattr(user, "profile") and user.profile.otp_code == value:
                 return Response({"success": True, "message": f"{action_type} validated"})
             return Response({"success": False, "message": "Invalid OTP"}, status=401)
@@ -71,9 +64,6 @@ class WalletViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"])
     def fund_confirm(self, request):
-        """
-        Confirm payment transaction and credit wallet
-        """
         reference = request.data.get("reference")
         amount = request.data.get("amount")
         wallet_id = request.data.get("wallet_id")
@@ -102,9 +92,6 @@ class WalletViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"])
     def transfer(self, request):
-        """
-        Transfer funds between wallets
-        """
         sender = request.user
         recipient_identifier = request.data.get("recipient")
         amount = float(request.data.get("amount", 0))
@@ -127,7 +114,6 @@ class WalletViewSet(viewsets.ModelViewSet):
             sender_wallet.save()
             recipient_wallet.save()
 
-            # Create transaction records
             WalletTransaction.objects.create(
                 wallet=sender_wallet,
                 amount=amount,
@@ -145,7 +131,97 @@ class WalletViewSet(viewsets.ModelViewSet):
 
         return Response({"success": True, "message": "Transfer completed successfully"})
 
+    # ADDED FROM CODE 2: Standing orders shortcut
+    @action(detail=False, methods=["get", "post"])
+    def standing_orders(self, request):
+        if request.method == "GET":
+            orders = StandingOrder.objects.filter(wallet__user=request.user)
+            return Response(StandingOrderSerializer(orders, many=True).data)
 
+        if request.method == "POST":
+            serializer = StandingOrderSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save(wallet=Wallet.objects.get(user=request.user))
+                return Response(serializer.data, status=201)
+            return Response(serializer.errors, status=400)
+
+    # ADDED FROM CODE 2: Bills shortcut  
+    @action(detail=False, methods=["get", "post"])
+    def bills(self, request):
+        if request.method == "GET":
+            bills = Bill.objects.filter(wallet__user=request.user)
+            return Response(BillSerializer(bills, many=True).data)
+
+        if request.method == "POST":
+            bill_id = request.data.get("bill_id")
+            amount = request.data.get("amount")
+            try:
+                bill = Bill.objects.get(id=bill_id, wallet__user=request.user)
+            except Bill.DoesNotExist:
+                return Response({"error": "Bill not found"}, status=404)
+
+            if bill.status == "paid":
+                return Response({"error": "Bill already paid"}, status=400)
+
+            wallet = bill.wallet
+            if wallet.balance < float(amount):
+                return Response({"error": "Insufficient balance"}, status=400)
+
+            with transaction.atomic():
+                wallet.balance -= float(amount)
+                wallet.save()
+                bill.status = "paid"
+                bill.save()
+
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    amount=amount,
+                    txn_type="debit",
+                    reference=f"BILL-{bill.id}",
+                    description="Bill payment"
+                )
+
+            return Response({"success": True, "message": "Bill paid"})
+
+    # ADDED FROM CODE 2: Savings shortcut
+    @action(detail=False, methods=["get", "post"])
+    def savings(self, request):
+        if request.method == "GET":
+            savings = FixedSaving.objects.filter(wallet__user=request.user)
+            return Response(FixedSavingSerializer(savings, many=True).data)
+
+        if request.method == "POST":
+            action_type = request.data.get("action")
+            amount = float(request.data.get("amount", 0))
+            wallet = Wallet.objects.get(user=request.user)
+
+            if action_type == "lock":
+                if wallet.balance < amount:
+                    return Response({"error": "Insufficient balance"}, status=400)
+
+                with transaction.atomic():
+                    wallet.balance -= amount
+                    wallet.save()
+                    saving = FixedSaving.objects.create(wallet=wallet, amount=amount)
+                return Response(FixedSavingSerializer(saving).data, status=201)
+
+            elif action_type == "unlock":
+                saving_id = request.data.get("saving_id")
+                try:
+                    saving = FixedSaving.objects.get(id=saving_id, wallet=wallet)
+                except FixedSaving.DoesNotExist:
+                    return Response({"error": "Saving not found"}, status=404)
+
+                with transaction.atomic():
+                    wallet.balance += saving.amount
+                    wallet.save()
+                    saving.delete()
+                return Response({"success": True, "message": "Funds unlocked"})
+
+            return Response({"error": "Invalid action"}, status=400)
+
+
+# KEEP all your existing separate ViewSets
 class WalletTransactionViewSet(viewsets.ModelViewSet):
     queryset = WalletTransaction.objects.all()
     serializer_class = WalletTransactionSerializer
@@ -159,9 +235,6 @@ class WalletTransactionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def cluster_by_type(self, request):
-        """
-        Aggregate transactions grouped by transaction type
-        """
         qs = (
             self.get_queryset()
             .values("txn_type")
@@ -176,9 +249,6 @@ class WalletTransactionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def cluster_by_month(self, request):
-        """
-        Aggregate transactions grouped by month
-        """
         qs = (
             self.get_queryset()
             .annotate(month=TruncMonth("created_at"))
