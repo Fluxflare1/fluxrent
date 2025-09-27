@@ -1,3 +1,4 @@
+# backend/config/settings.py
 import os
 from pathlib import Path
 import environ
@@ -106,6 +107,10 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "AUTH_HEADER_TYPES": ("Bearer",),
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": env("SIMPLE_JWT_SIGNING_KEY", default=SECRET_KEY),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 # Password validation
@@ -142,10 +147,16 @@ EMAIL_PORT = env.int("EMAIL_PORT", default=587)
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@example.com")
 
 # Paystack keys
 PAYSTACK_SECRET_KEY = env("PAYSTACK_SECRET_KEY", default="")
 PAYSTACK_PUBLIC_KEY = env("PAYSTACK_PUBLIC_KEY", default="")
+
+# Notifications
+SLACK_WEBHOOK_URL = env("SLACK_WEBHOOK_URL", default=None)
+ADMIN_EMAILS = env.list("ADMIN_EMAILS", default=["admin@example.com"])
+ADMIN_ALERT_EMAILS = env.list("ADMIN_ALERT_EMAILS", default=ADMIN_EMAILS)
 
 # Sentry
 SENTRY_DSN = env("SENTRY_DSN", default="")
@@ -159,23 +170,3 @@ if SENTRY_DSN:
         traces_sample_rate=1.0,
         send_default_pii=True,
     )
-
-
-SLACK_WEBHOOK_URL = env("SLACK_WEBHOOK_URL", default=None)
-ADMIN_EMAILS = env.list("ADMIN_EMAILS", default=["admin@example.com"])
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@example.com")
-
-
-
-# Add to settings.py (secret values should be in env)
-SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "")
-ADMIN_ALERT_EMAILS = os.getenv("ADMIN_ALERT_EMAILS", "").split(",") if os.getenv("ADMIN_ALERT_EMAILS") else []
-
-# SIMPLE_JWT settings (used by SSE token validation)
-SIMPLE_JWT = {
-    "ALGORITHM": "HS256",
-    "SIGNING_KEY": os.getenv("SIMPLE_JWT_SIGNING_KEY", SECRET_KEY),
-    # keep other existing settings
-}
-
