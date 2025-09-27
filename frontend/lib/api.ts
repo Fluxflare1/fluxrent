@@ -90,9 +90,9 @@ export async function apiFetch(
   return res.json();
 }
 
-// API endpoints map - Merged from both codes
+// API endpoints map
 export const ENDPOINTS = {
-  // Auth (from Code 1)
+  // Auth
   token: "/api/auth/token/",
   tokenRefresh: "/api/auth/token/refresh/",
   me: "/api/users/me/",
@@ -101,41 +101,42 @@ export const ENDPOINTS = {
   passwordReset: "/api/auth/password-reset/",
   passwordResetConfirm: "/api/auth/password-reset/confirm/",
 
-  // Properties (from Code 1, enhanced with Code 2 structure)
+  // Properties
   listings: "/api/properties/listings/",
   properties: {
     listings: "/api/properties/listings/",
   },
 
-  // Wallet (from Code 1, kept complete)
+  // Wallet
   wallet: {
-    base: "/api/wallets/", // GET list, POST create
-    balances: "/api/wallets/", // GET list of user wallets (alias)
-    validate: "/api/wallets/validate/", // POST { method, value }
-    fundConfirm: "/api/wallets/fund/confirm/", // POST { wallet_id, reference, amount }
-    transfer: "/api/wallets/transfer/", // POST { recipient, amount }
-    standingOrders: "/api/wallets/standing_orders/", // RESTful
-    bills: "/api/wallets/bills/", // GET list, POST pay
-    savings: "/api/wallets/savings/", // RESTful
-    withdrawals: "/api/wallets/withdrawals/", // POST request withdrawal
-    transactions: "/api/wallets/transactions/", // GET list
+    base: "/api/wallets/",
+    balances: "/api/wallets/",
+    validate: "/api/wallets/validate/",
+    fundConfirm: "/api/wallets/fund/confirm/",
+    transfer: "/api/wallets/transfer/",
+    standingOrders: "/api/wallets/standing_orders/",
+    bills: "/api/wallets/bills/",
+    savings: "/api/wallets/savings/",
+    withdrawals: "/api/wallets/withdrawals/",
+    transactions: "/api/wallets/transactions/",
     audit: "/api/wallet/audit/",
+    refunds: "/api/wallet/refunds/",
   },
 
-  // Finance endpoints (from Code 2 - NEW)
+  // Finance
   finance: {
     fees: "/api/finance/fees/",
     audits: "/api/finance/audits/",
     disputes: "/api/finance/disputes/",
   },
-};
 
-payments: {
+  // Payments
+  payments: {
     webhook: "/api/payments/webhooks/paystack/",
   },
 };
 
-// Helpers (from Code 1)
+// Helpers
 export async function fetchListings(params?: Record<string, any>) {
   const res = await api.get(ENDPOINTS.listings, { params });
   return res.data;
@@ -161,4 +162,3 @@ export default {
   authApi,
   API_BASE_URL 
 };
-
