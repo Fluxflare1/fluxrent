@@ -8,6 +8,7 @@ class RefundSerializer(serializers.ModelSerializer):
         model = Refund
         fields = [
             "id", "transaction_ref", "amount", "charge", "total_refund",
-            "status", "requested_by", "approved_by", "created_at", "updated_at"
+            "status", "auto_generated", "hold_until",
+            "requested_by", "approved_by", "created_at", "updated_at"
         ]
         read_only_fields = ["status", "requested_by", "approved_by", "created_at", "updated_at"]
