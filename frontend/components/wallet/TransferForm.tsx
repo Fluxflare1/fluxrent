@@ -1,3 +1,5 @@
+
+
 "use client";
 
 import { useState } from "react";
@@ -24,7 +26,8 @@ export default function TransferForm({ token }: { token: string }) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 border rounded-xl p-4 shadow">
+      <h2 className="font-semibold">Transfer</h2>
       <Input placeholder="Recipient Wallet No" value={recipient} onChange={(e) => setRecipient(e.target.value)} />
       <Input placeholder="Amount" value={amount} onChange={(e) => setAmount(e.target.value)} />
       <Button onClick={handleTransfer}>Transfer</Button>
