@@ -165,14 +165,3 @@ export default {
 };
 
 
-
-
-
-
-export const ENDPOINTS = {
-  wallet: {
-    refunds: "/api/wallet/refunds/",
-    audit: "/api/wallet/audit/",
-    disputes: "/api/wallet/disputes/",
-  },
-};
