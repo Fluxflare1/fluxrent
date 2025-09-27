@@ -164,3 +164,18 @@ if SENTRY_DSN:
 SLACK_WEBHOOK_URL = env("SLACK_WEBHOOK_URL", default=None)
 ADMIN_EMAILS = env.list("ADMIN_EMAILS", default=["admin@example.com"])
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@example.com")
+
+
+
+# Add to settings.py (secret values should be in env)
+SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "")
+ADMIN_ALERT_EMAILS = os.getenv("ADMIN_ALERT_EMAILS", "").split(",") if os.getenv("ADMIN_ALERT_EMAILS") else []
+
+# SIMPLE_JWT settings (used by SSE token validation)
+SIMPLE_JWT = {
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": os.getenv("SIMPLE_JWT_SIGNING_KEY", SECRET_KEY),
+    # keep other existing settings
+}
+
