@@ -44,8 +44,12 @@ export default function TransactionRow({ txn, isAdmin = false, onDispute }: Prop
       </div>
 
       <div className="text-right flex flex-col items-end gap-2">
-        <div className="text-sm">Fee: <span className="font-semibold">{txn.fee_amount || 0}</span></div>
-        <div className="text-sm">Net: <span className="font-semibold">{txn.net_amount || txn.amount}</span></div>
+        <div>
+          <span className="mr-3">₦{txn.amount}</span>
+          <span className="text-xs text-gray-500">
+            Fee: ₦{txn.charge} | Net: ₦{txn.net_amount}
+          </span>
+        </div>
         <div className="text-xs text-slate-500">{txn.status}</div>
         
         <div className="flex gap-2 mt-1">
@@ -74,12 +78,3 @@ export default function TransactionRow({ txn, isAdmin = false, onDispute }: Prop
     </div>
   );
 }
-
-
-
-<div>
-  <span className="mr-3">₦{txn.amount}</span>
-  <span className="text-xs text-gray-500">
-    Fee: ₦{txn.charge} | Net: ₦{txn.net_amount}
-  </span>
-</div>
