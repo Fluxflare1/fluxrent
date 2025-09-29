@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     "properties.apps.PropertiesConfig",
     "bills.apps.BillsConfig",
     "wallets.apps.WalletsConfig",
+    "rents.apps.RentsConfig",
+    "disputes.apps.DisputesConfig",
     "payments.apps.PaymentsConfig",
     "tenants.apps.TenantsConfig",
     "finance.apps.FinanceConfig",
