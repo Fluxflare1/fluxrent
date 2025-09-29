@@ -141,3 +141,24 @@ export default function AdminDisputesPageClientWrapper() {
     </>
   );
 }
+
+
+
+
+
+useEffect(() => {
+  const socket = new WebSocket("wss://your-domain/ws/disputes/");
+
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    // show toast notification for new dispute
+    toast({
+      title: "New Dispute",
+      description: `Dispute #${data.id} by ${data.user}`,
+    });
+    // refresh disputes list
+    fetchDisputes();
+  };
+
+  return () => socket.close();
+}, []);
