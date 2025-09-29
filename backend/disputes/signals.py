@@ -71,3 +71,25 @@ def notify_new_dispute(sender, instance, created, **kwargs):
                 "created_at": instance.created_at.isoformat(),
             },
         )
+
+
+
+from .tasks import notify_admins_of_dispute
+
+@receiver(post_save, sender=Dispute)
+def notify_new_dispute(sender, instance, created, **kwargs):
+    if created:
+        # Broadcast to WebSocket group
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "disputes",
+            {
+                "type": "dispute_created",
+                "id": instance.id,
+                "user": instance.user.username,
+                "status": instance.status,
+                "created_at": instance.created_at.isoformat(),
+            },
+        )
+        # Trigger async Slack/Email notifications
+        notify_admins_of_dispute.delay(instance.id)
