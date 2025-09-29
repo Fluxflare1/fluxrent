@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "payments.apps.PaymentsConfig",
     "tenants.apps.TenantsConfig",
     "finance.apps.FinanceConfig",
+    "notifications.apps.NotificationsConfig",
 ]
 
 MIDDLEWARE = [
