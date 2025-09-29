@@ -6,6 +6,8 @@ from django.db.models.signals import post_save
 from django.conf import settings
 from django.core.mail import send_mail
 from .models import Dispute, DisputeAuditTrail
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 SLACK_WEBHOOK = getattr(settings, "SLACK_WEBHOOK_URL", None)
 DEFAULT_FROM = getattr(settings, "DEFAULT_FROM_EMAIL", None)
@@ -52,3 +54,20 @@ def on_dispute_created(sender, instance: Dispute, created: bool, **kwargs):
             subject = f"[FluxRent] New Dispute {instance.uid}"
             body = f"New dispute {instance.uid}\nUser: {instance.user.email}\nAmount: {instance.amount}\nRef: {instance.transaction_reference}\n\nReason:\n{instance.reason}\n\nOpen admin: /admin/disputes/dispute/{instance.id}/change/"
             _send_email_subject_body(subject, body, ADMIN_ALERT_EMAILS)
+
+
+
+@receiver(post_save, sender=Dispute)
+def notify_new_dispute(sender, instance, created, **kwargs):
+    if created:
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "disputes",
+            {
+                "type": "dispute_created",
+                "id": instance.id,
+                "user": instance.user.username,
+                "status": instance.status,
+                "created_at": instance.created_at.isoformat(),
+            },
+        )
