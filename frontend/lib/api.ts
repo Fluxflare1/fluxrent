@@ -182,3 +182,30 @@ export const RENT_API = {
   payments: "/api/rents/payments/",
   reports: "/api/rents/reports/",
 };
+
+
+
+// frontend/lib/api.ts
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const API_BASE_URL = `${API_BASE.replace(/\/$/, "")}/api`;
+
+export async function fetchListingsServer(params: Record<string, any> = {}) {
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v === undefined || v === null || v === "") return;
+    q.append(k, String(v));
+  });
+  const url = `${API_BASE_URL}/properties/listings/?${q.toString()}`;
+  const res = await fetch(url, { next: { revalidate: 60 } });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch listings: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchListingServer(id: string) {
+  const url = `${API_BASE_URL}/properties/listings/${id}/`;
+  const res = await fetch(url, { next: { revalidate: 60 } });
+  if (!res.ok) throw new Error(`Failed to fetch listing ${id}`);
+  return res.json();
+}
