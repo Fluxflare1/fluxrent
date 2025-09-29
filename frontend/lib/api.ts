@@ -165,3 +165,12 @@ export default {
 };
 
 
+
+// frontend/lib/api.ts
+// (merge with your existing file; ensure functions below exist)
+export const RENT_ENDPOINTS = {
+  tenancies: "/api/rents/tenancies/",
+  invoices: "/api/rents/invoices/",
+  rentPayments: "/api/rents/payments/",
+  lateFeeRules: "/api/rents/late-fee-rules/",
+};
