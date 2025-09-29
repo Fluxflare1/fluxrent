@@ -28,7 +28,7 @@ export default async function PropertiesPage({ searchParams = {} }: Props) {
     page,
     page_size,
     q: searchParams.q,
-    listing_type: searchParams.listing_type,
+    listing_type: searchParams.listing_type, // Fixed: was model_type in new code
     min_price: searchParams.min_price,
     max_price: searchParams.max_price,
     bedrooms: searchParams.bedrooms,
