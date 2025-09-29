@@ -126,3 +126,18 @@ export default function AdminDisputesPage() {
     </div>
   );
 }
+
+
+
+
+// in frontend/app/admin/disputes/page.tsx (client part)
+"use client";
+import DisputeSSE from "@/components/admin/DisputeSSE";
+export default function AdminDisputesPageClientWrapper() {
+  return (
+    <>
+      <DisputeSSE />
+      {/* existing admin UI... */}
+    </>
+  );
+}
