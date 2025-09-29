@@ -170,3 +170,20 @@ if SENTRY_DSN:
         traces_sample_rate=1.0,
         send_default_pii=True,
     )
+
+
+
+
+
+INSTALLED_APPS += ["channels"]
+
+ASGI_APPLICATION = "backend.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis", 6379)],  # docker-compose service name
+        },
+    },
+}
