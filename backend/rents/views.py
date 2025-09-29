@@ -198,3 +198,91 @@ class RentPaymentViewSet(viewsets.GenericViewSet):
         payment.finalize_success()
         receipt = Receipt.objects.create(payment=payment)
         return Response({"payment": RentPaymentSerializer(payment).data, "receipt": ReceiptSerializer(receipt).data}, status=status.HTTP_200_OK)
+
+# inside backend/rents/views.py (RentPaymentViewSet class)
+from django.template.loader import render_to_string
+from django.http import HttpResponse
+import weasyprint
+from django.conf import settings
+import tempfile
+
+    @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def receipt_html(self, request, pk=None):
+        """
+        Return HTML for a receipt (tenant/manager can view).
+        """
+        try:
+            payment = self.get_object()
+        except Exception:
+            return Response({"detail": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # permission check: tenant or property manager or admin
+        user = request.user
+        if getattr(user, "role", None) == "tenant" and payment.payer != user:
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        if getattr(user, "role", None) == "property_manager":
+            # allow if manager for invoice property
+            if payment.invoice.tenancy.apartment.property.manager != user and not user.is_staff:
+                return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
+        # ensure receipt exists (create if missing)
+        if not hasattr(payment, "receipt"):
+            from .models import Receipt
+            Receipt.objects.create(payment=payment)
+
+        receipt = payment.receipt
+        ctx = {
+            "receipt": receipt,
+            "payment": payment,
+            "invoice": payment.invoice,
+            "tenant": payment.payer,
+            "tenancy": payment.invoice.tenancy,
+            "company_name": getattr(settings, "PLATFORM_NAME", "FluxRent"),
+        }
+        html = render_to_string("rents/receipt.html", ctx)
+        return HttpResponse(html, content_type="text/html")
+
+    @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def receipt_pdf(self, request, pk=None):
+        """
+        Return PDF file for a receipt. Uses WeasyPrint.
+        """
+        try:
+            payment = self.get_object()
+        except Exception:
+            return Response({"detail": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+        if getattr(user, "role", None) == "tenant" and payment.payer != user:
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        if getattr(user, "role", None) == "property_manager" and payment.invoice.tenancy.apartment.property.manager != user and not user.is_staff:
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
+        # Ensure receipt exists
+        from .models import Receipt
+        if not hasattr(payment, "receipt"):
+            Receipt.objects.create(payment=payment)
+        receipt = payment.receipt
+
+        ctx = {
+            "receipt": receipt,
+            "payment": payment,
+            "invoice": payment.invoice,
+            "tenant": payment.payer,
+            "tenancy": payment.invoice.tenancy,
+            "company_name": getattr(settings, "PLATFORM_NAME", "FluxRent"),
+        }
+        html = render_to_string("rents/receipt.html", ctx)
+
+        # Render PDF with WeasyPrint. Use temporary file streaming.
+        try:
+            # Create a temp file for PDF
+            with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
+                weasyprint.HTML(string=html).write_pdf(tmp_file.name)
+                tmp_file.seek(0)
+                pdf_data = tmp_file.read()
+            response = HttpResponse(pdf_data, content_type="application/pdf")
+            response["Content-Disposition"] = f'attachment; filename="receipt-{payment.uid}.pdf"'
+            return response
+        except Exception as e:
+            return Response({"detail": "Failed to generate PDF", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
