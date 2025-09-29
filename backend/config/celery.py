@@ -17,3 +17,18 @@ app.conf.beat_schedule = {
         "schedule": crontab(hour=3, minute=0),  # runs daily at 3 AM
     },
 }
+
+
+
+# backend/config/celery.py (merge into existing beat_schedule)
+app.conf.beat_schedule = getattr(app.conf, "beat_schedule", {})
+app.conf.beat_schedule.update({
+    "process-standing-orders-daily": {
+        "task": "wallet.tasks.process_standing_orders",
+        "schedule": crontab(hour=0, minute=0),
+    },
+    "rents-apply-late-fees-daily": {
+        "task": "rents.tasks.apply_late_fees",
+        "schedule": crontab(hour=1, minute=0),  # 1am daily
+    },
+})
