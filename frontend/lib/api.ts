@@ -174,3 +174,11 @@ export const RENT_ENDPOINTS = {
   rentPayments: "/api/rents/payments/",
   lateFeeRules: "/api/rents/late-fee-rules/",
 };
+
+
+
+export const RENT_API = {
+  invoices: "/api/rents/invoices/",
+  payments: "/api/rents/payments/",
+  reports: "/api/rents/reports/",
+};
