@@ -2,32 +2,48 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, fetchListings, ListingFilters } from "@/lib/api";
 import PropertyCard from "@/components/property/PropertyCard";
 import MapView from "@/components/listings/MapView";
 import FiltersPanel from "@/components/listings/FiltersPanel";
-import { Grid, Map } from "lucide-react";
+import { Grid, Map, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+type ViewMode = "grid" | "map" | "list";
 
 export default function PropertiesPage() {
   const [listings, setListings] = useState<any[]>([]);
-  const [viewMode, setViewMode] = useState<"grid" | "map">("grid");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<ListingFilters>({});
 
-  async function loadListings(filters = {}) {
+  async function loadListings(currentFilters: ListingFilters = {}) {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: "1",
-        page_size: "12",
-        ...filters
-      });
+      // Use fetchListings from API if available, otherwise fallback to direct fetch
+      let data;
+      try {
+        data = await fetchListings({
+          page: "1",
+          page_size: "12",
+          ...currentFilters
+        });
+      } catch {
+        // Fallback to direct fetch if fetchListings fails
+        const params = new URLSearchParams({
+          page: "1",
+          page_size: "12",
+          ...currentFilters
+        });
+        
+        const res = await fetch(`${API_BASE_URL}/api/properties/listings/?${params}`);
+        if (!res.ok) throw new Error("Failed to fetch listings");
+        
+        data = await res.json();
+      }
       
-      const res = await fetch(`${API_BASE_URL}/api/properties/listings/?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch listings");
-      
-      const data = await res.json();
       setListings(data.results || data);
+      setFilters(currentFilters);
     } catch (error) {
       console.error("Error loading listings:", error);
       setListings([]);
@@ -40,8 +56,8 @@ export default function PropertiesPage() {
     loadListings();
   }, []);
 
-  const handleFilterChange = (filters: any) => {
-    loadListings(filters);
+  const handleFilterChange = (newFilters: any) => {
+    loadListings(newFilters);
   };
 
   if (loading) {
@@ -82,6 +98,15 @@ export default function PropertiesPage() {
             Grid
           </Button>
           <Button
+            variant={viewMode === "list" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+            className="flex items-center gap-2"
+          >
+            <List className="h-4 w-4" />
+            List
+          </Button>
+          <Button
             variant={viewMode === "map" ? "default" : "outline"}
             size="sm"
             onClick={() => setViewMode("map")}
@@ -96,19 +121,80 @@ export default function PropertiesPage() {
       <div className="grid lg:grid-cols-4 gap-6">
         {/* Filters Sidebar */}
         <aside className="lg:col-span-1">
-          <FiltersPanel onFilterChange={handleFilterChange} />
+          <FiltersPanel 
+            onFilterChange={handleFilterChange} 
+            initial={filters}
+          />
         </aside>
 
         {/* Main Content */}
         <main className="lg:col-span-3">
-          {viewMode === "grid" ? (
+          {/* Grid View */}
+          {viewMode === "grid" && (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {listings.map((property) => (
                 <PropertyCard key={property.id} property={property} />
               ))}
             </div>
-          ) : (
-            <MapView listings={listings} height="h-[600px]" />
+          )}
+
+          {/* List View */}
+          {viewMode === "list" && (
+            <div className="bg-white border rounded-lg p-4 shadow-sm">
+              <h3 className="font-semibold mb-4 text-lg">Properties</h3>
+              <ul className="space-y-3">
+                {listings.map((property) => (
+                  <li key={property.id} className="border p-4 rounded-lg hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-800 text-lg">{property.title}</h4>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {property.currency || '₦'} {property.price?.toLocaleString()} — {property.listing_type || property.property_type}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {property.bedrooms || 0} bed / {property.bathrooms || 0} bath / {property.toilets || 0} toilet
+                        </p>
+                        {property.address && (
+                          <p className="text-xs text-gray-500 mt-1 truncate">{property.address}</p>
+                        )}
+                      </div>
+                      {property.media?.[0]?.file && (
+                        <img 
+                          src={property.media[0].file} 
+                          alt={property.title}
+                          className="w-20 h-20 object-cover rounded ml-4"
+                        />
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Map View */}
+          {viewMode === "map" && (
+            <div className="flex flex-col gap-6">
+              <MapView listings={listings} height="h-[500px]" />
+              
+              {/* Property List below Map */}
+              <div className="bg-white border rounded-lg p-4 shadow-sm">
+                <h3 className="font-semibold mb-4 text-lg">Properties in this area</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {listings.slice(0, 4).map((property) => (
+                    <div key={property.id} className="border p-3 rounded-lg hover:shadow-md transition-shadow">
+                      <h4 className="font-medium text-gray-800">{property.title}</h4>
+                      <p className="text-sm text-gray-600">
+                        {property.currency || '₦'} {property.price?.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {property.bedrooms || 0} bed / {property.bathrooms || 0} bath
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Empty State */}
