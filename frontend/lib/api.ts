@@ -150,6 +150,12 @@ export const ENDPOINTS = {
     webhook: "/payments/webhooks/paystack/",
   },
 
+  boost: {
+    packages: "/api/properties/boost/packages/",
+    purchase: "/api/properties/boost/purchase/",
+    confirm: "/api/properties/boost/confirm/",
+  },
+
   // --- Rent Management ---
   rents: {
     tenancies: "/rents/tenancies/",
@@ -240,3 +246,4 @@ export default {
   fetchListingServer,
   API_BASE_URL,
 };
+
