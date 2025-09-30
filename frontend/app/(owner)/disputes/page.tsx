@@ -8,7 +8,10 @@ export const metadata = {
 };
 
 // load client component dynamically to keep page a server component wrapper
-const DisputeAdmin = dynamic(() => import("~/components/admin/DisputeAdmin"), { ssr: false });
+const DisputeAdmin = dynamic(
+  () => import("@/components/admin/DisputeAdmin"),
+  { ssr: false }
+);
 
 export default function Page() {
   return (
