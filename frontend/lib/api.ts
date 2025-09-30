@@ -2,102 +2,15 @@
 import axios from "axios";
 
 // ------------------------------
-// Base API URL
+// API Base
 // ------------------------------
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-export const API_BASE_URL = `${API_BASE.replace(/\/$/, "")}/api`;
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-// ------------------------------
-// Axios instances
-// ------------------------------
-export const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  },
-});
-
-export const authApi = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  },
-});
+export const api = axios.create({ baseURL: API_BASE_URL });
+export const authApi = axios.create({ baseURL: API_BASE_URL });
 
 // ------------------------------
-// Auth token management
-// ------------------------------
-const TOKEN_KEY = "fluxrent:jwt";
-
-export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token: string): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function removeToken(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(TOKEN_KEY);
-}
-
-// Attach token interceptor
-authApi.interceptors.request.use((config) => {
-  const token = getToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// ------------------------------
-// Fetch wrapper (server-friendly)
-// ------------------------------
-export async function apiFetch(
-  path: string,
-  opts: RequestInit = {},
-  expectJson = true
-): Promise<any> {
-  const token = getToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    ...(opts.headers as Record<string, string> || {}),
-  };
-
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    credentials: "same-origin",
-    ...opts,
-    headers,
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    let payload: any = text;
-    try {
-      payload = JSON.parse(text);
-    } catch {
-      payload = text;
-    }
-    const err: any = new Error("API request failed");
-    err.status = res.status;
-    err.payload = payload;
-    throw err;
-  }
-
-  if (!expectJson) return res;
-  return res.json();
-}
-
-// ------------------------------
-// Endpoints map
+// Endpoints map (single definition only!)
 // ------------------------------
 export const ENDPOINTS = {
   // --- Auth & Users ---
@@ -150,12 +63,14 @@ export const ENDPOINTS = {
     webhook: "/payments/webhooks/paystack/",
   },
 
+  // --- Boost ---
   boost: {
     packages: "/api/properties/boost/packages/",
     purchase: "/api/properties/boost/purchase/",
     confirm: "/api/properties/boost/confirm/",
   },
 
+  // --- Admin ---
   admin: {
     boostAnalytics: "/api/properties/admin/boost-analytics/",
   },
@@ -177,14 +92,14 @@ export interface ListingFilters {
   search?: string;
   min_price?: number;
   max_price?: number;
-  property_type?: string; // e.g. "apartment", "house"
+  property_type?: string;
   bedrooms?: number;
   bathrooms?: number;
-  furnishing?: string; // e.g. "furnished", "unfurnished"
+  furnishing?: string;
   lng?: number;
   lat?: number;
-  radius?: number; // km
-  ordering?: string; // e.g. "-price" or "price"
+  radius?: number;
+  ordering?: string;
   page?: number;
   page_size?: number;
 }
@@ -192,14 +107,11 @@ export interface ListingFilters {
 // ------------------------------
 // Helpers for Listings
 // ------------------------------
-
-// Client-side fetch (axios)
 export async function fetchListings(filters: ListingFilters = {}) {
   const res = await api.get(ENDPOINTS.properties.base, { params: filters });
   return res.data;
 }
 
-// Server-side fetch (Next.js)
 export async function fetchListingsServer(filters: ListingFilters = {}) {
   const q = new URLSearchParams();
   Object.entries(filters).forEach(([k, v]) => {
@@ -208,9 +120,7 @@ export async function fetchListingsServer(filters: ListingFilters = {}) {
   });
   const url = `${API_BASE_URL}${ENDPOINTS.properties.base}?${q.toString()}`;
   const res = await fetch(url, { next: { revalidate: 60 } });
-  if (!res.ok) {
-    throw new Error(`Failed to fetch listings: ${res.status}`);
-  }
+  if (!res.ok) throw new Error(`Failed to fetch listings: ${res.status}`);
   return res.json();
 }
 
@@ -224,6 +134,18 @@ export async function fetchListingServer(id: string) {
 // ------------------------------
 // Auth Helpers
 // ------------------------------
+export function getToken() {
+  return localStorage.getItem("access_token");
+}
+
+export function setToken(token: string) {
+  localStorage.setItem("access_token", token);
+}
+
+export function removeToken() {
+  localStorage.removeItem("access_token");
+}
+
 export async function signOut() {
   try {
     removeToken();
@@ -240,15 +162,12 @@ export async function signOut() {
 export default {
   api,
   authApi,
-  apiFetch,
   ENDPOINTS,
-  getToken,
-  setToken,
-  removeToken,
   fetchListings,
   fetchListingsServer,
   fetchListingServer,
+  getToken,
+  setToken,
+  removeToken,
   API_BASE_URL,
 };
-
-
