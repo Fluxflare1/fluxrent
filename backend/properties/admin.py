@@ -9,6 +9,7 @@ from .models.media import PropertyMedia
 from .models.inspection import InspectionBooking
 from .models.messaging import MessageThread, Message
 from .models.engagement import ListingEngagement
+from properties.models.boost import BoostPackage, BoostPurchase, PlatformSetting
 
 
 @admin.register(PropertyListing)
@@ -262,3 +263,23 @@ class ListingEngagementAdmin(admin.ModelAdmin):
             messages.SUCCESS
         )
     reset_engagement_metrics.short_description = "Reset engagement metrics to zero"
+
+
+
+
+@admin.register(BoostPackage)
+class BoostPackageAdmin(admin.ModelAdmin):
+    list_display = ("uid", "name", "price", "duration_days", "active")
+    search_fields = ("name", "uid")
+    list_filter = ("active",)
+
+@admin.register(BoostPurchase)
+class BoostPurchaseAdmin(admin.ModelAdmin):
+    list_display = ("uid", "listing", "buyer", "amount", "status", "purchased_at", "starts_at", "ends_at")
+    search_fields = ("uid", "listing__title", "buyer__email", "reference")
+    list_filter = ("status",)
+
+@admin.register(PlatformSetting)
+class PlatformSettingAdmin(admin.ModelAdmin):
+    list_display = ("key", "updated_at")
+    readonly_fields = ("updated_at",)
