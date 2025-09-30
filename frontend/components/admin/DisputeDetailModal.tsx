@@ -1,10 +1,11 @@
 // frontend/components/admin/DisputeDetailModal.tsx
 "use client";
+
 import React, { useEffect, useState } from "react";
-import { apiFetch, ENDPOINTS } from "~/lib/api";
-import { Button } from "~/components/ui/button";
-import { Textarea } from "~/components/ui/textarea";
-import { useToast } from "~/hooks/use-toast";
+import { apiFetch, ENDPOINTS } from "@/lib/api";        // ✅ fixed alias
+import Button from "@/components/ui/button";            // ✅ fixed alias
+import Textarea from "@/components/ui/textarea";        // ✅ fixed alias
+import { useToast } from "@/hooks/use-toast";           // ✅ fixed alias
 
 type Comment = {
   id: string;
@@ -34,6 +35,7 @@ export default function DisputeDetailModal({
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
   const [internalComment, setInternalComment] = useState(false);
+
   const base = ENDPOINTS?.wallet?.base ?? "/api/wallets/";
   const endpoint = `${base}disputes/`;
 
@@ -42,11 +44,12 @@ export default function DisputeDetailModal({
     try {
       const data = await apiFetch(`${endpoint}${disputeId}/`);
       setDispute(data);
-      // fetch comments from nested endpoint if returned via API or from /comments/ — we used nested serializer but safe to request comments separately
-      // If API provides comments on dispute object under .comments then use that.
       setComments(data.comments || []);
     } catch (err: any) {
-      toast({ title: "Failed to load dispute", description: err?.payload?.detail || err.message });
+      toast({
+        title: "Failed to load dispute",
+        description: err?.payload?.detail || err.message,
+      });
     } finally {
       setLoading(false);
     }
@@ -93,7 +96,6 @@ export default function DisputeDetailModal({
 
   async function handleRefund() {
     try {
-      // optionally open a small prompt to ask amount/reference — keep simple for now: refund full dispute.amount
       await apiFetch(`${endpoint}${disputeId}/refund/`, {
         method: "POST",
         body: JSON.stringify({}),
@@ -131,6 +133,7 @@ export default function DisputeDetailModal({
           </div>
 
           <div className="p-4 space-y-4">
+            {/* dispute info */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="text-sm text-slate-500">User</div>
@@ -150,6 +153,7 @@ export default function DisputeDetailModal({
               </div>
             </div>
 
+            {/* evidence */}
             <div>
               <div className="text-sm text-slate-500">Evidence</div>
               {dispute.evidence ? (
@@ -161,6 +165,7 @@ export default function DisputeDetailModal({
               )}
             </div>
 
+            {/* comments */}
             <div>
               <div className="text-sm text-slate-500">Comments</div>
               <div className="space-y-2 mt-2 max-h-48 overflow-auto">
@@ -176,23 +181,28 @@ export default function DisputeDetailModal({
               </div>
             </div>
 
+            {/* add comment */}
             <div>
               <div className="text-sm text-slate-500">Add comment</div>
-              <textarea
-                className="w-full border rounded p-2"
+              <Textarea
                 rows={3}
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
               />
               <div className="flex items-center gap-2 mt-2">
                 <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={internalComment} onChange={(e) => setInternalComment(e.target.checked)} />
+                  <input
+                    type="checkbox"
+                    checked={internalComment}
+                    onChange={(e) => setInternalComment(e.target.checked)}
+                  />
                   <span className="text-sm">Internal</span>
                 </label>
                 <Button onClick={handleAddComment}>Add</Button>
               </div>
             </div>
 
+            {/* actions */}
             <div className="flex gap-2 justify-end">
               <Button onClick={() => handleResolve("reject")} variant="ghost">
                 Reject
