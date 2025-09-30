@@ -7,6 +7,7 @@ from users.models import User
 from properties.models import Property
 from wallets.models import Transaction
 from .models import PlatformSetting, AdminActionLog
+from notifications.utils import send_notification  # assume utils wrapper that handles email/SMS/slack
 from .serializers import (
     UserSerializer, PropertySerializer, TransactionSerializer, PlatformSettingSerializer
 )
@@ -62,3 +63,41 @@ class PlatformSettingViewSet(viewsets.ModelViewSet):
     queryset = PlatformSetting.objects.all()
     serializer_class = PlatformSettingSerializer
     permission_classes = [IsOwner]
+
+
+class NotificationBroadcastViewSet(viewsets.ViewSet):
+    permission_classes = [IsOwner]
+
+    @action(detail=False, methods=["post"])
+    def broadcast(self, request):
+        """
+        Broadcast notification to a target group (all, tenants, managers, agents).
+        """
+        target = request.data.get("target", "all")
+        message = request.data.get("message")
+        channel = request.data.get("channel", "email")  # email | sms | slack
+
+        if not message:
+            return Response({"error": "Message required"}, status=400)
+
+        qs = User.objects.all()
+        if target == "tenants":
+            qs = qs.filter(role="tenant")
+        elif target == "managers":
+            qs = qs.filter(role="manager")
+        elif target == "agents":
+            qs = qs.filter(role="agent")
+
+        recipients = [u.email for u in qs if u.email]
+
+        # Send via notification utils
+        send_notification(channel=channel, recipients=recipients, message=message)
+
+        # Log
+        AdminActionLog.objects.create(
+            actor=request.user,
+            action="broadcast",
+            details={"target": target, "channel": channel, "message": message},
+        )
+
+        return Response({"status": "sent", "recipients": len(recipients)})
