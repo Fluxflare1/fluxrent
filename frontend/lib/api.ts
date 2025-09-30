@@ -209,3 +209,14 @@ export async function fetchListingServer(id: string) {
   if (!res.ok) throw new Error(`Failed to fetch listing ${id}`);
   return res.json();
 }
+
+
+
+export const ENDPOINTS = {
+  listings: {
+    base: "/api/properties/",
+    boost: (id: number | string) => `/api/properties/${id}/boost/`,
+    search: "/api/properties/?ordering=-ranking_score",
+  },
+  // ... rest
+};
