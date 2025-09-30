@@ -156,6 +156,10 @@ export const ENDPOINTS = {
     confirm: "/api/properties/boost/confirm/",
   },
 
+  admin: {
+    boostAnalytics: "/api/properties/admin/boost-analytics/",
+  },
+
   // --- Rent Management ---
   rents: {
     tenancies: "/rents/tenancies/",
@@ -247,3 +251,10 @@ export default {
   API_BASE_URL,
 };
 
+
+
+
+export const ENDPOINTS = {
+  // ... existing
+  
+};
