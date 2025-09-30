@@ -1,9 +1,3 @@
-every line of code below is very important  but we have some duplicates. can you incorporate  code 2 into code 1 without  adding personal input or generic input. just filter and pick what's in code 2 that is not in code 1. 
-Just work based on my instructions, not just what you think or feel or assume: 
-
-
-code 1 (existing code)
-
 
 # backend/wallet/views_paystack.py
 import json
@@ -276,7 +270,7 @@ class PaystackWebhookView(APIView):
 
 
 
-code 2 (new code to be added)
+
 # backend/wallet/views_paystack.py
 import json, hashlib, hmac
 from django.conf import settings
