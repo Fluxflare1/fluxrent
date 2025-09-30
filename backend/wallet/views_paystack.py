@@ -17,11 +17,11 @@ from properties.views import ConfirmExternalBoostView
 @method_decorator(csrf_exempt, name="dispatch")
 class PaystackWebhookView(APIView):
     """
-    Unified Paystack webhook:
+    Unified Paystack webhook handler:
     - Validates signature
-    - Handles DVA wallet funding
+    - Logs & confirms external boosts
+    - Handles wallet funding via DVA
     - Handles transfer credits
-    - Handles external boosts (metadata.reference_type == "boost")
     """
 
     authentication_classes = []
@@ -33,7 +33,6 @@ class PaystackWebhookView(APIView):
             request.headers.get("x-paystack-signature")
             or request.META.get("HTTP_X_PAYSTACK_SIGNATURE")
         )
-
         if not signature:
             return HttpResponse(status=400)
 
@@ -44,7 +43,7 @@ class PaystackWebhookView(APIView):
         ).hexdigest()
 
         if signature != expected_signature:
-            return HttpResponse(status=400)
+            return Response({"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             data = json.loads(raw_body.decode("utf-8"))
@@ -55,38 +54,54 @@ class PaystackWebhookView(APIView):
         payload = data.get("data", {}) or {}
 
         try:
-            # === Case 1: External Boost Payments ===
-            metadata = payload.get("metadata") or {}
+            reference = payload.get("reference")
+            amount_kobo = payload.get("amount", 0)
+            amount = Decimal(amount_kobo) / 100 if amount_kobo else Decimal("0")
+
+            metadata = payload.get("metadata", {}) or {}
             reference_type = metadata.get("reference_type")
-            if event == "charge.success" and reference_type == "boost":
-                property_id = metadata.get("property_id")
-                agent_id = metadata.get("agent_id")
+            property_id = metadata.get("property_id")
+            agent_id = metadata.get("agent_id")
 
-                # Log boost
-                BoostPaymentLog.objects.create(
-                    reference=payload.get("reference"),
-                    amount=Decimal(payload.get("amount", 0)) / Decimal(100),
-                    property_id=property_id,
-                    agent_id=agent_id,
-                    raw=data,
+            # Always log boost attempt
+            if reference:
+                log, _ = BoostPaymentLog.objects.get_or_create(
+                    reference=reference,
+                    defaults={
+                        "amount": amount,
+                        "property_id": property_id,
+                        "agent_id": agent_id,
+                        "status": "pending",
+                        "raw": data,
+                    },
                 )
+                log.raw = data
+                log.amount = amount
 
-                # Confirm external boost
+            # === Case 1: External Boost Payments ===
+            if event == "charge.success" and reference_type == "boost":
+                if reference:
+                    log.status = "success"
+                    log.save(update_fields=["status", "amount", "raw"])
+
                 view = ConfirmExternalBoostView.as_view()
                 return view(request._request, property_id=property_id, agent_id=agent_id)
+
+            elif event in ("charge.failed", "charge.failure") and reference_type == "boost":
+                if reference:
+                    log.status = "failed"
+                    log.save(update_fields=["status", "amount", "raw"])
+                return Response({"status": "failed"}, status=200)
 
             # === Case 2: Wallet Funding via DVA ===
             if event.startswith("charge."):
                 auth = payload.get("authorization") or {}
                 channel = auth.get("channel") or payload.get("channel")
-                amount_kobo = payload.get("amount")
-                reference = payload.get("reference") or str(payload.get("id"))
+                reference = reference or str(payload.get("id"))
                 receiver_acc = (
                     auth.get("receiver_bank_account_number")
                     or auth.get("receiver_account")
                 )
-
-                amount = Decimal(amount_kobo) / Decimal(100) if isinstance(amount_kobo, int) else Decimal("0")
 
                 credited = False
                 if receiver_acc:
@@ -113,12 +128,6 @@ class PaystackWebhookView(APIView):
             if event.startswith("transfer."):
                 receiver = payload.get("recipient") or payload.get("receiver") or {}
                 account_number = receiver.get("account_number") if isinstance(receiver, dict) else receiver
-                amount = payload.get("amount")
-                if isinstance(amount, int):
-                    amount = Decimal(amount) / Decimal(100)
-                else:
-                    amount = Decimal(str(amount or "0"))
-
                 credited = False
                 if account_number:
                     try:
@@ -142,98 +151,10 @@ class PaystackWebhookView(APIView):
                 return JsonResponse({"status": True, "credited": bool(credited)}, status=200)
 
             # === Default: ignore event ===
+            if reference:
+                log.save(update_fields=["amount", "raw"])
             return JsonResponse({"status": True, "ignored_event": event}, status=200)
 
         except Exception as exc:
             # Never 500 to Paystack, always swallow but log
-            # TODO: hook logger / Sentry
-     
             return JsonResponse({"status": False, "error": str(exc)}, status=200)
-
-
-
-
-
-
-import json, hashlib, hmac
-from decimal import Decimal
-from django.conf import settings
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-
-from properties.models import BoostPaymentLog
-from properties.views import ConfirmExternalBoostView
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-class PaystackWebhookView(APIView):
-    """
-    Handle Paystack webhook → confirm external boosts, wallet funding, etc.
-    """
-
-    authentication_classes = []
-    permission_classes = []
-
-    def post(self, request, *args, **kwargs):
-        # Verify signature
-        signature = request.headers.get("x-paystack-signature")
-        raw_body = request.body
-        expected_signature = hmac.new(
-            settings.PAYSTACK_SECRET_KEY.encode("utf-8"),
-            raw_body,
-            hashlib.sha512,
-        ).hexdigest()
-
-        if signature != expected_signature:
-            return Response({"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
-
-        data = json.loads(raw_body.decode("utf-8"))
-        event = data.get("event")
-        payload = data.get("data", {})
-
-        reference = payload.get("reference")
-        amount_kobo = payload.get("amount", 0)
-        amount = Decimal(amount_kobo) / 100 if amount_kobo else Decimal("0")
-
-        metadata = payload.get("metadata", {}) or {}
-        reference_type = metadata.get("reference_type")
-        property_id = metadata.get("property_id")
-        agent_id = metadata.get("agent_id")
-
-        # Always try to fetch existing log and update
-        log, _ = BoostPaymentLog.objects.get_or_create(
-            reference=reference,
-            defaults={
-                "amount": amount,
-                "property_id": property_id,
-                "agent_id": agent_id,
-                "status": "pending",
-                "raw": data,
-            },
-        )
-
-        # Update raw + amount (in case)
-        log.raw = data
-        log.amount = amount
-
-        if event == "charge.success" and reference_type == "boost":
-            log.status = "success"
-            log.save(update_fields=["status", "amount", "raw"])
-
-            # Trigger external boost confirmation
-            view = ConfirmExternalBoostView.as_view()
-            return view(request._request, property_id=property_id, agent_id=agent_id)
-
-        elif event in ("charge.failed", "charge.failure"):
-            log.status = "failed"
-            log.save(update_fields=["status", "amount", "raw"])
-            return Response({"status": "failed"}, status=200)
-
-        else:
-            # Unhandled event, keep log as pending or update raw
-            log.save(update_fields=["amount", "raw"])
-            return Response({"status": "ignored", "event": event}, status=200)
