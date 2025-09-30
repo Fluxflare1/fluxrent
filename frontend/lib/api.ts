@@ -1,27 +1,34 @@
 // frontend/lib/api.ts
 import axios from "axios";
 
+// ------------------------------
+// Base API URL
+// ------------------------------
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-export const API_BASE_URL = `${API_BASE}`.replace(/\/$/, "");
+export const API_BASE_URL = `${API_BASE.replace(/\/$/, "")}/api`;
 
-// Non-authenticated axios instance
+// ------------------------------
+// Axios instances
+// ------------------------------
 export const api = axios.create({
-  baseURL: API_BASE,
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
 });
 
-// Authenticated axios instance (token added at runtime)
 export const authApi = axios.create({
-  baseURL: API_BASE,
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
 });
 
+// ------------------------------
+// Auth token management
+// ------------------------------
 const TOKEN_KEY = "fluxrent:jwt";
 
 export function getToken(): string | null {
@@ -39,7 +46,7 @@ export function removeToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-// Attach interceptor to authApi
+// Attach token interceptor
 authApi.interceptors.request.use((config) => {
   const token = getToken();
   if (token) {
@@ -48,10 +55,9 @@ authApi.interceptors.request.use((config) => {
   return config;
 });
 
-/**
- * Simple fetch wrapper that includes Authorization header when available.
- * Uses fetch instead of axios for server-compatibility with Next.js server components.
- */
+// ------------------------------
+// Fetch wrapper (server-friendly)
+// ------------------------------
 export async function apiFetch(
   path: string,
   opts: RequestInit = {},
@@ -63,7 +69,7 @@ export async function apiFetch(
     Accept: "application/json",
     ...(opts.headers as Record<string, string> || {}),
   };
-  
+
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
@@ -71,7 +77,7 @@ export async function apiFetch(
     ...opts,
     headers,
   });
-  
+
   if (!res.ok) {
     const text = await res.text();
     let payload: any = text;
@@ -85,64 +91,129 @@ export async function apiFetch(
     err.payload = payload;
     throw err;
   }
-  
+
   if (!expectJson) return res;
   return res.json();
 }
 
-// API endpoints map
+// ------------------------------
+// Endpoints map
+// ------------------------------
 export const ENDPOINTS = {
-  // Auth
-  token: "/api/auth/token/",
-  tokenRefresh: "/api/auth/token/refresh/",
-  me: "/api/users/me/",
-  register: "/api/users/register/",
-  kyc: "/api/users/kyc/",
-  passwordReset: "/api/auth/password-reset/",
-  passwordResetConfirm: "/api/auth/password-reset/confirm/",
+  // --- Auth & Users ---
+  auth: {
+    token: "/auth/token/",
+    tokenRefresh: "/auth/token/refresh/",
+    passwordReset: "/auth/password-reset/",
+    passwordResetConfirm: "/auth/password-reset/confirm/",
+  },
+  users: {
+    me: "/users/me/",
+    register: "/users/register/",
+    kyc: "/users/kyc/",
+  },
 
-  // Properties
-  listings: "/api/properties/listings/",
+  // --- Properties / Listings ---
   properties: {
-    listings: "/api/properties/listings/",
+    base: "/properties/listings/",
+    detail: (id: number | string) => `/properties/listings/${id}/`,
+    boost: (id: number | string) => `/properties/${id}/boost/`,
+    search: "/properties/?ordering=-ranking_score",
   },
 
-  // Wallet
+  // --- Wallet ---
   wallet: {
-    base: "/api/wallets/",
-    balances: "/api/wallets/",
-    validate: "/api/wallets/validate/",
-    fundConfirm: "/api/wallets/fund/confirm/",
-    transfer: "/api/wallets/transfer/",
-    standingOrders: "/api/wallets/standing_orders/",
-    bills: "/api/wallets/bills/",
-    savings: "/api/wallets/savings/",
-    withdrawals: "/api/wallets/withdrawals/",
-    transactions: "/api/wallets/transactions/",
-    audit: "/api/wallet/audit/",
-    refunds: "/api/wallet/refunds/",
-    disputes: "/api/wallet/disputes/",
+    base: "/wallets/",
+    balances: "/wallets/",
+    validate: "/wallets/validate/",
+    fundConfirm: "/wallets/fund/confirm/",
+    transfer: "/wallets/transfer/",
+    standingOrders: "/wallets/standing_orders/",
+    bills: "/wallets/bills/",
+    savings: "/wallets/savings/",
+    withdrawals: "/wallets/withdrawals/",
+    transactions: "/wallets/transactions/",
+    audit: "/wallet/audit/",
+    refunds: "/wallet/refunds/",
+    disputes: "/wallet/disputes/",
   },
 
-  // Finance
+  // --- Finance ---
   finance: {
-    fees: "/api/finance/fees/",
-    audits: "/api/finance/audits/",
-    disputes: "/api/finance/disputes/",
+    fees: "/finance/fees/",
+    audits: "/finance/audits/",
+    disputes: "/finance/disputes/",
   },
 
-  // Payments
+  // --- Payments ---
   payments: {
-    webhook: "/api/payments/webhooks/paystack/",
+    webhook: "/payments/webhooks/paystack/",
+  },
+
+  // --- Rent Management ---
+  rents: {
+    tenancies: "/rents/tenancies/",
+    invoices: "/rents/invoices/",
+    payments: "/rents/payments/",
+    lateFeeRules: "/rents/late-fee-rules/",
+    reports: "/rents/reports/",
   },
 };
 
-// Helpers
-export async function fetchListings(params?: Record<string, any>) {
-  const res = await api.get(ENDPOINTS.listings, { params });
+// ------------------------------
+// Filters typing
+// ------------------------------
+export interface ListingFilters {
+  search?: string;
+  min_price?: number;
+  max_price?: number;
+  property_type?: string; // e.g. "apartment", "house"
+  bedrooms?: number;
+  bathrooms?: number;
+  furnishing?: string; // e.g. "furnished", "unfurnished"
+  lng?: number;
+  lat?: number;
+  radius?: number; // km
+  ordering?: string; // e.g. "-price" or "price"
+  page?: number;
+  page_size?: number;
+}
+
+// ------------------------------
+// Helpers for Listings
+// ------------------------------
+
+// Client-side fetch (axios)
+export async function fetchListings(filters: ListingFilters = {}) {
+  const res = await api.get(ENDPOINTS.properties.base, { params: filters });
   return res.data;
 }
 
+// Server-side fetch (Next.js)
+export async function fetchListingsServer(filters: ListingFilters = {}) {
+  const q = new URLSearchParams();
+  Object.entries(filters).forEach(([k, v]) => {
+    if (v === undefined || v === null || v === "") return;
+    q.append(k, String(v));
+  });
+  const url = `${API_BASE_URL}${ENDPOINTS.properties.base}?${q.toString()}`;
+  const res = await fetch(url, { next: { revalidate: 60 } });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch listings: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchListingServer(id: string) {
+  const url = `${API_BASE_URL}${ENDPOINTS.properties.detail(id)}`;
+  const res = await fetch(url, { next: { revalidate: 60 } });
+  if (!res.ok) throw new Error(`Failed to fetch listing ${id}`);
+  return res.json();
+}
+
+// ------------------------------
+// Auth Helpers
+// ------------------------------
 export async function signOut() {
   try {
     removeToken();
@@ -153,70 +224,19 @@ export async function signOut() {
   }
 }
 
-export default { 
-  apiFetch, 
-  ENDPOINTS, 
-  getToken, 
-  setToken, 
-  removeToken, 
-  api, 
+// ------------------------------
+// Default export
+// ------------------------------
+export default {
+  api,
   authApi,
-  API_BASE_URL 
-};
-
-
-
-// frontend/lib/api.ts
-// (merge with your existing file; ensure functions below exist)
-export const RENT_ENDPOINTS = {
-  tenancies: "/api/rents/tenancies/",
-  invoices: "/api/rents/invoices/",
-  rentPayments: "/api/rents/payments/",
-  lateFeeRules: "/api/rents/late-fee-rules/",
-};
-
-
-
-export const RENT_API = {
-  invoices: "/api/rents/invoices/",
-  payments: "/api/rents/payments/",
-  reports: "/api/rents/reports/",
-};
-
-
-
-// frontend/lib/api.ts
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-export const API_BASE_URL = `${API_BASE.replace(/\/$/, "")}/api`;
-
-export async function fetchListingsServer(params: Record<string, any> = {}) {
-  const q = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === "") return;
-    q.append(k, String(v));
-  });
-  const url = `${API_BASE_URL}/properties/listings/?${q.toString()}`;
-  const res = await fetch(url, { next: { revalidate: 60 } });
-  if (!res.ok) {
-    throw new Error(`Failed to fetch listings: ${res.status}`);
-  }
-  return res.json();
-}
-
-export async function fetchListingServer(id: string) {
-  const url = `${API_BASE_URL}/properties/listings/${id}/`;
-  const res = await fetch(url, { next: { revalidate: 60 } });
-  if (!res.ok) throw new Error(`Failed to fetch listing ${id}`);
-  return res.json();
-}
-
-
-
-export const ENDPOINTS = {
-  listings: {
-    base: "/api/properties/",
-    boost: (id: number | string) => `/api/properties/${id}/boost/`,
-    search: "/api/properties/?ordering=-ranking_score",
-  },
-  // ... rest
+  apiFetch,
+  ENDPOINTS,
+  getToken,
+  setToken,
+  removeToken,
+  fetchListings,
+  fetchListingsServer,
+  fetchListingServer,
+  API_BASE_URL,
 };
