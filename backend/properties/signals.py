@@ -7,6 +7,8 @@ from .models.listings import PropertyListing
 from .models.inspection import InspectionBooking
 from .models.engagement import ListingEngagement
 from .services.search import SearchRankingService
+from properties.models.boost import BoostPurchase
+from .signals import update_listing_ranking  # careful with imports; update_listing_ranking already defined in this file
 
 logger = logging.getLogger(__name__)
 
@@ -56,3 +58,13 @@ def handle_inspection_booking_engagement(sender, instance, created, **kwargs):
             SearchRankingService.update_listing_ranking(listing)
         except Exception as e:
             logger.error(f"Failed to update ranking after inspection for listing {listing.id}: {e}")
+
+
+@receiver(post_save, sender=BoostPurchase)
+def handle_boost_activation(sender, instance, created, **kwargs):
+    # When boost becomes success/update, update listing ranking score
+    if instance.status == "success":
+        try:
+            update_listing_ranking(instance.listing)
+        except Exception:
+            pass
