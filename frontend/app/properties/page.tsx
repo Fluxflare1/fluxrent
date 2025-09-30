@@ -1,24 +1,32 @@
-"use client";
-import { useEffect, useState } from "react";
-import { apiFetch, ENDPOINTS } from "@/lib/api";
+// frontend/app/properties/page.tsx
+import { API_BASE_URL } from "@/lib/api";
 import PropertyCard from "@/components/property/PropertyCard";
 
-export default function PropertiesPage() {
-  const [listings, setListings] = useState<any[]>([]);
+export const metadata = {
+  title: "Properties — Browse | FluxRent",
+  description: "Search and filter properties for rent, lease, and sale.",
+};
 
-  async function load() {
-    const res = await apiFetch(ENDPOINTS.listings.search);
-    setListings(res.results || res);
+async function fetchInitialListings() {
+  const res = await fetch(`${API_BASE_URL}/api/properties/listings/?page=1`, { 
+    next: { revalidate: 60 } 
+  });
+  
+  if (!res.ok) {
+    return [];
   }
+  
+  const payload = await res.json();
+  return payload.results || payload;
+}
 
-  useEffect(() => {
-    load();
-  }, []);
+export default async function PropertiesPage() {
+  const listings = await fetchInitialListings();
 
   return (
     <div className="grid md:grid-cols-3 gap-4">
-      {listings.map((p) => (
-        <PropertyCard key={p.id} property={p} />
+      {listings.map((property) => (
+        <PropertyCard key={property.id} property={property} />
       ))}
     </div>
   );
