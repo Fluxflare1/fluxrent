@@ -1,6 +1,7 @@
 # backend/properties/urls.py
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from .views_boosts import InitiateBoostPaymentView
 from properties.views.boosting import BoostPackageListView, CreateBoostPurchaseView, ConfirmExternalBoostView
 from .views import (
     PropertyListingViewSet,
@@ -29,4 +30,5 @@ urlpatterns = router.urls + [
     path("boost/packages/", BoostPackageListView.as_view(), name="boost-packages"),
     path("boost/purchase/", CreateBoostPurchaseView.as_view(), name="boost-purchase"),
     path("boost/confirm/", ConfirmExternalBoostView.as_view(), name="boost-confirm"),
+    path("boosts/initiate/", InitiateBoostPaymentView.as_view(), name="initiate-boost"),
 ]
