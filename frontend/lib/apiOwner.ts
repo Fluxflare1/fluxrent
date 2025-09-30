@@ -24,3 +24,23 @@ export async function verifyKYC(id: number) {
 export async function fetchBoostedProperties() {
   return api.get("/owner/properties/").then(res => res.data);
 }
+
+
+
+// frontend/lib/apiOwner.ts (append)
+
+export async function broadcastNotification(payload: {
+  target: string;
+  message: string;
+  channel: string;
+}) {
+  return api.post("/owner/notifications/broadcast/", payload).then(res => res.data);
+}
+
+export async function fetchSettings() {
+  return api.get("/owner/settings/").then(res => res.data);
+}
+
+export async function updateSetting(id: number, value: string) {
+  return api.put(`/owner/settings/${id}/`, { value }).then(res => res.data);
+}
