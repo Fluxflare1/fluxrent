@@ -1,13 +1,16 @@
 // frontend/components/listings/MapView.tsx
 "use client";
+
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import "leaflet/dist/leaflet.css";
 import "react-leaflet-markercluster/dist/styles.min.css";
 import L from "leaflet";
 import Link from "next/link";
-import { useMemo, useState, useEffect } from "react";
+import { fetchListings, ListingFilters } from "@/lib/api";
 
+// Fix default Leaflet icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -24,58 +27,66 @@ interface Listing {
     coordinates: [number, number]; // [lng, lat]
   };
   address?: string;
-  property_uid?: string;
 }
 
 interface MapViewProps {
-  listings: Listing[];
-  center?: [number, number]; // [lat, lng]
+  filters?: ListingFilters; // external filters (price, property_type, etc.)
+  center?: [number, number];
   zoom?: number;
   height?: string;
   className?: string;
-  onBoundsChange?: (bounds: { sw_lng: number; sw_lat: number; ne_lng: number; ne_lat: number }) => void;
-}
-
-function MapEvents({ onBoundsChange }: { onBoundsChange?: MapViewProps["onBoundsChange"] }) {
-  const map = useMapEvents({
-    moveend: () => {
-      if (!onBoundsChange) return;
-      const b = map.getBounds();
-      // Leaflet LatLngBounds -> southwest (lat,lng) & northeast (lat,lng)
-      const sw = b.getSouthWest();
-      const ne = b.getNorthEast();
-      onBoundsChange({
-        sw_lng: sw.lng,
-        sw_lat: sw.lat,
-        ne_lng: ne.lng,
-        ne_lat: ne.lat,
-      });
-    },
-    zoomend: () => {
-      if (!onBoundsChange) return;
-      const b = map.getBounds();
-      const sw = b.getSouthWest();
-      const ne = b.getNorthEast();
-      onBoundsChange({
-        sw_lng: sw.lng,
-        sw_lat: sw.lat,
-        ne_lng: ne.lng,
-        ne_lat: ne.lat,
-      });
-    },
-  });
-  return null;
 }
 
 export default function MapView({
-  listings,
-  center = [6.5244, 3.3792],
+  filters = {},
+  center = [6.5244, 3.3792], // default: Lagos
   zoom = 11,
   height = "h-96",
   className = "",
-  onBoundsChange,
 }: MapViewProps) {
   const [map, setMap] = useState<L.Map | null>(null);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch listings with filters + bounds
+  const loadListings = useCallback(
+    async (extraFilters: Partial<ListingFilters> = {}) => {
+      try {
+        setLoading(true);
+        const data = await fetchListings({ ...filters, ...extraFilters });
+        setListings(data.results || data); // DRF pagination OR plain array
+      } catch (err) {
+        console.error("Failed to load listings:", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [filters]
+  );
+
+  // Fetch on initial load + when filters change
+  useEffect(() => {
+    loadListings();
+  }, [loadListings]);
+
+  // Hook to capture map moves and reload listings
+  function MapEvents() {
+    useMapEvents({
+      moveend: () => {
+        if (!map) return;
+        const bounds = map.getBounds();
+        const center = map.getCenter();
+        const radius = center.distanceTo(bounds.getNorthEast()) / 1000; // in km
+
+        loadListings({
+          lat: center.lat,
+          lng: center.lng,
+          radius: Math.round(radius),
+        });
+      },
+    });
+    return null;
+  }
 
   const bounds = useMemo(() => {
     try {
@@ -86,24 +97,12 @@ export default function MapView({
           return [lat, lng] as [number, number];
         })
         .filter(Boolean) as [number, number][];
-
       return validPoints.length > 0 ? validPoints : null;
     } catch (error) {
       console.error("Error calculating map bounds:", error);
       return null;
     }
   }, [listings]);
-
-  useEffect(() => {
-    if (!map || !bounds) return;
-    setTimeout(() => {
-      try {
-        map.fitBounds(bounds as any, { padding: [20, 20] });
-      } catch (e) {
-        // ignore
-      }
-    }, 100);
-  }, [map, bounds]);
 
   const formatCurrency = (price: number, currency?: string) => {
     const symbols: { [key: string]: string } = {
@@ -116,6 +115,7 @@ export default function MapView({
     return `${symbol} ${price.toLocaleString()}`;
   };
 
+  // Filter out invalid listings
   const validListings = useMemo(
     () => listings.filter((listing) => listing.location?.coordinates),
     [listings]
@@ -127,31 +127,51 @@ export default function MapView({
         center={center}
         zoom={zoom}
         style={{ height: "100%", width: "100%" }}
-        whenCreated={(m) => setMap(m)}
+        whenCreated={setMap}
         scrollWheelZoom={true}
         zoomControl={true}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        <MapEvents onBoundsChange={onBoundsChange} />
+        <MapEvents />
+
+        {loading && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-white px-3 py-1 rounded shadow text-sm text-gray-600">
+            Loading properties...
+          </div>
+        )}
 
         {validListings.length > 0 ? (
-          <MarkerClusterGroup chunkedLoading maxClusterRadius={50} spiderfyOnMaxZoom showCoverageOnHover={false}>
+          <MarkerClusterGroup
+            chunkedLoading
+            maxClusterRadius={50}
+            spiderfyOnMaxZoom={true}
+            showCoverageOnHover={false}
+          >
             {validListings.map((listing) => {
               const [lng, lat] = listing.location!.coordinates;
               return (
                 <Marker key={listing.id} position={[lat, lng]}>
                   <Popup>
                     <div className="max-w-xs p-2">
-                      <h3 className="font-semibold text-sm mb-1 line-clamp-2">{listing.title}</h3>
-                      <div className="text-xs text-gray-600 mb-2">{formatCurrency(listing.price, listing.currency)}</div>
+                      <h3 className="font-semibold text-sm mb-1 line-clamp-2">
+                        {listing.title}
+                      </h3>
+                      <div className="text-xs text-gray-600 mb-2">
+                        {formatCurrency(listing.price, listing.currency)}
+                      </div>
                       {listing.address && (
-                        <p className="text-xs text-gray-500 mb-2 line-clamp-2">{listing.address}</p>
+                        <p className="text-xs text-gray-500 mb-2 line-clamp-2">
+                          {listing.address}
+                        </p>
                       )}
-                      <Link href={`/properties/listings/${listing.id}`} className="text-blue-600 hover:text-blue-800 text-xs font-medium inline-flex items-center">
+                      <Link
+                        href={`/listings/${listing.id}`}
+                        className="text-blue-600 hover:text-blue-800 text-xs font-medium inline-flex items-center"
+                      >
                         View details →
                       </Link>
                     </div>
@@ -161,11 +181,13 @@ export default function MapView({
             })}
           </MarkerClusterGroup>
         ) : (
-          <Marker position={center}>
-            <Popup>
-              <div className="text-sm">No properties found in this area</div>
-            </Popup>
-          </Marker>
+          !loading && (
+            <Marker position={center}>
+              <Popup>
+                <div className="text-sm">No properties found in this area</div>
+              </Popup>
+            </Marker>
+          )
         )}
       </MapContainer>
     </div>
