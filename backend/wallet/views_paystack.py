@@ -1,3 +1,10 @@
+every line of code below is very important  but we have some duplicates. can you incorporate  code 2 into code 1 without  adding personal input or generic input. just filter and pick what's in code 2 that is not in code 1. 
+Just work based on my instructions, not just what you think or feel or assume: 
+
+
+code 1 (existing code)
+
+
 # backend/wallet/views_paystack.py
 import json
 from django.conf import settings
@@ -262,3 +269,67 @@ class PaystackWebhookView(APIView):
             # Avoid returning 500 to Paystack — log and return 200/400 accordingly
             # In production, log exception to Sentry / logger
             return JsonResponse({"status": False, "error": str(exc)}, status=200)
+
+
+
+
+
+
+
+code 2 (new code to be added)
+# backend/wallet/views_paystack.py
+import json, hashlib, hmac
+from django.conf import settings
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
+from properties.models import Property, BoostPaymentLog
+from properties.views import ConfirmExternalBoostView
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class PaystackWebhookView(APIView):
+    """
+    Handle Paystack webhook → confirm external boosts, wallet funding, etc.
+    """
+
+    def post(self, request, *args, **kwargs):
+        signature = request.headers.get("x-paystack-signature")
+        raw_body = request.body
+        expected_signature = hmac.new(
+            settings.PAYSTACK_SECRET_KEY.encode("utf-8"),
+            raw_body,
+            hashlib.sha512,
+        ).hexdigest()
+
+        if signature != expected_signature:
+            return Response({"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
+
+        data = json.loads(raw_body.decode("utf-8"))
+        event = data.get("event")
+        payload = data.get("data", {})
+
+        metadata = payload.get("metadata", {})
+        reference_type = metadata.get("reference_type")
+        property_id = metadata.get("property_id")
+        agent_id = metadata.get("agent_id")
+
+        # Log it
+        BoostPaymentLog.objects.create(
+            reference=payload.get("reference"),
+            amount=payload.get("amount", 0) / 100,
+            property_id=property_id,
+            agent_id=agent_id,
+            raw=data,
+        )
+
+        if event == "charge.success" and reference_type == "boost":
+            # Call confirm boost
+            view = ConfirmExternalBoostView.as_view()
+            return view(request._request, property_id=property_id, agent_id=agent_id)
+
+        return Response({"status": "ignored"}, status=200)
