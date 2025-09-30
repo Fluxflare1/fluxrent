@@ -62,10 +62,17 @@ class Apartment(models.Model):
 
 
 
+
+
 class BoostPaymentLog(models.Model):
     reference = models.CharField(max_length=255, unique=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    property = models.ForeignKey("Property", on_delete=models.SET_NULL, null=True)
-    agent_id = models.IntegerField(null=True, blank=True)
-    raw = models.JSONField(default=dict)
+    property = models.ForeignKey("Property", on_delete=models.CASCADE)
+    agent = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    status = models.CharField(
+        max_length=20,
+        choices=[("pending", "Pending"), ("success", "Success"), ("failed", "Failed")],
+        default="pending",
+    )
+    raw = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
