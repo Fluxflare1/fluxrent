@@ -252,9 +252,3 @@ export default {
 };
 
 
-
-
-export const ENDPOINTS = {
-  // ... existing
-  
-};
