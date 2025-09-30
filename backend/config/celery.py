@@ -32,3 +32,18 @@ app.conf.beat_schedule.update({
         "schedule": crontab(hour=1, minute=0),  # 1am daily
     },
 })
+
+
+
+
+# backend/config/celery.py (add to app.conf.beat_schedule)
+app.conf.beat_schedule.update({
+    "properties-recalc-ranking-daily": {
+        "task": "properties.tasks.recalc_all_listing_rankings",
+        "schedule": crontab(hour=2, minute=0),  # example: 2am daily
+    },
+    "properties-expire-free-posts-daily": {
+        "task": "properties.tasks.expire_free_posts",
+        "schedule": crontab(hour=3, minute=0),
+    },
+})
