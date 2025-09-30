@@ -1,40 +1,37 @@
-// frontend/app/dashboard/owner/users/page.tsx
 "use client";
-import { useEffect, useState } from "react";
-import { fetchAllUsers, suspendUser, verifyKYC } from "@/lib/apiOwner";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function UsersPage() {
-  const [users, setUsers] = useState<any[]>([]);
+const mockUsers = [
+  { id: 1, name: "Jane Doe", role: "Tenant", email: "jane@example.com" },
+  { id: 2, name: "John Smith", role: "Agent", email: "john@example.com" },
+];
 
-  useEffect(() => {
-    fetchAllUsers().then(setUsers);
-  }, []);
-
+export default function OwnerUsersPage() {
   return (
-    <div className="p-6">
-      <h1 className="text-xl mb-4">User Management</h1>
-      <table className="w-full border">
-        <thead>
-          <tr className="bg-gray-100">
-            <th>Email</th><th>Role</th><th>Status</th><th>KYC</th><th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map(u => (
-            <tr key={u.id} className="border-b">
-              <td>{u.email}</td>
-              <td>{u.role}</td>
-              <td>{u.is_active ? "Active" : "Suspended"}</td>
-              <td>{u.kyc_verified ? "Verified" : "Pending"}</td>
-              <td className="space-x-2">
-                <Button size="sm" onClick={() => suspendUser(u.id)}>Suspend</Button>
-                <Button size="sm" onClick={() => verifyKYC(u.id)}>Verify KYC</Button>
-              </td>
+    <Card>
+      <CardHeader>
+        <CardTitle>All Users</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b">
+              <th className="text-left py-2">Name</th>
+              <th className="text-left py-2">Email</th>
+              <th className="text-left py-2">Role</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {mockUsers.map((u) => (
+              <tr key={u.id} className="border-b">
+                <td className="py-2">{u.name}</td>
+                <td className="py-2">{u.email}</td>
+                <td className="py-2">{u.role}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
   );
 }
