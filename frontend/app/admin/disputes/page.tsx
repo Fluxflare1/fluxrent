@@ -1,3 +1,4 @@
+// frontend/app/admin/disputes/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,9 +10,12 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Download, CheckCircle, Search } from "lucide-react";
 import axios from "axios";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminDisputesPage() {
-  const [disputes, setDisputes] = useState([]);
+  const { toast } = useToast();
+
+  const [disputes, setDisputes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
@@ -38,31 +42,59 @@ export default function AdminDisputesPage() {
       });
       setDisputes(res.data.results);
       setTotalPages(res.data.total_pages);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: "Failed to load disputes",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   }
 
   async function bulkResolve() {
-    await axios.post(`/api/disputes/bulk_resolve/`, { ids: selectedIds });
-    fetchDisputes();
-    setSelectedIds([]);
+    try {
+      await axios.post(`/api/disputes/bulk_resolve/`, { ids: selectedIds });
+      toast({ title: "Bulk resolved successfully" });
+      fetchDisputes();
+      setSelectedIds([]);
+    } catch {
+      toast({ title: "Error", description: "Bulk resolve failed", variant: "destructive" });
+    }
   }
 
-  async function exportCSV() {
+  function exportCSV() {
     window.open(`/api/disputes/export_csv/`);
   }
 
-  async function exportExcel() {
+  function exportExcel() {
     window.open(`/api/disputes/export_excel/`);
   }
+
+  // 🔥 WebSocket for real-time disputes
+  useEffect(() => {
+    const socket = new WebSocket("wss://your-domain/ws/disputes/");
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      toast({
+        title: "New Dispute",
+        description: `Dispute #${data.id} by ${data.user}`,
+      });
+      fetchDisputes();
+    };
+
+    return () => socket.close();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="p-6 space-y-4">
       <h1 className="text-xl font-semibold">Dispute Management</h1>
 
       {/* Filters */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Select onValueChange={(val) => setStatus(val)}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Filter by Status" />
@@ -81,7 +113,7 @@ export default function AdminDisputesPage() {
           className="w-64"
         />
 
-        <DatePicker onChange={(range) => setDateRange(range)} />
+        <DatePicker onChange={(range: any) => setDateRange(range)} />
 
         <Button onClick={fetchDisputes}>
           <Search className="w-4 h-4 mr-2" /> Search
@@ -107,7 +139,7 @@ export default function AdminDisputesPage() {
           <DataTable
             data={disputes}
             loading={loading}
-            onRowSelect={(ids) => setSelectedIds(ids)}
+            onRowSelect={(ids: number[]) => setSelectedIds(ids)}
             pagination={{
               page,
               totalPages,
@@ -126,39 +158,3 @@ export default function AdminDisputesPage() {
     </div>
   );
 }
-
-
-
-
-// in frontend/app/admin/disputes/page.tsx (client part)
-"use client";
-import DisputeSSE from "@/components/admin/DisputeSSE";
-export default function AdminDisputesPageClientWrapper() {
-  return (
-    <>
-      <DisputeSSE />
-      {/* existing admin UI... */}
-    </>
-  );
-}
-
-
-
-
-
-useEffect(() => {
-  const socket = new WebSocket("wss://your-domain/ws/disputes/");
-
-  socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    // show toast notification for new dispute
-    toast({
-      title: "New Dispute",
-      description: `Dispute #${data.id} by ${data.user}`,
-    });
-    // refresh disputes list
-    fetchDisputes();
-  };
-
-  return () => socket.close();
-}, []);
