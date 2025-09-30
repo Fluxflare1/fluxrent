@@ -1,7 +1,8 @@
 // frontend/components/admin/DisputeTable.tsx
 "use client";
+
 import React from "react";
-import { Button } from "~/components/ui/button";
+import Button from "@/components/ui/button";   // ✅ fixed alias
 
 type Dispute = {
   id: number;
@@ -91,6 +92,7 @@ export default function DisputeTable({
         </table>
       </div>
 
+      {/* pagination */}
       <div className="mt-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <label>Page size</label>
@@ -113,7 +115,10 @@ export default function DisputeTable({
           <div>
             Page {page} / {totalPages}
           </div>
-          <Button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page >= totalPages}>
+          <Button
+            onClick={() => setPage(Math.min(totalPages, page + 1))}
+            disabled={page >= totalPages}
+          >
             Next
           </Button>
         </div>
