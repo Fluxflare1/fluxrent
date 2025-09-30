@@ -3,7 +3,7 @@ import { ReactNode } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { AuthProvider } from "@/components/AuthProvider";
-
+import "leaflet/dist/leaflet.css";
 
 export const metadata = {
   title: "FluxRent",
@@ -33,3 +33,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   );
 }
+
+
+
