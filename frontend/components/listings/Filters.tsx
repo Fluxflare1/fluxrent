@@ -4,9 +4,10 @@ import { useState } from "react";
 
 export interface FiltersProps {
   onChange: (filters: Record<string, any>) => void;
+  resultsCount?: number;
 }
 
-export default function Filters({ onChange }: FiltersProps) {
+export default function Filters({ onChange, resultsCount }: FiltersProps) {
   const [filters, setFilters] = useState({
     min_price: "",
     max_price: "",
@@ -21,9 +22,36 @@ export default function Filters({ onChange }: FiltersProps) {
     onChange(newFilters);
   }
 
+  function clearFilters() {
+    const cleared = {
+      min_price: "",
+      max_price: "",
+      property_type: "",
+      bedrooms: "",
+      bathrooms: "",
+    };
+    setFilters(cleared);
+    onChange(cleared);
+  }
+
   return (
     <div className="space-y-4 bg-white p-4 border rounded-lg shadow-sm">
-      <h3 className="font-semibold text-lg mb-2">Filters</h3>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="font-semibold text-lg">Filters</h3>
+        <button
+          type="button"
+          onClick={clearFilters}
+          className="text-xs text-red-600 hover:underline"
+        >
+          Clear
+        </button>
+      </div>
+
+      {resultsCount !== undefined && (
+        <p className="text-sm text-gray-600 font-medium">
+          {resultsCount} properties found
+        </p>
+      )}
 
       {/* Price Range */}
       <div className="space-y-2">
