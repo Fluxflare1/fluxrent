@@ -7,6 +7,11 @@ html, body, #__next {
   height: 100%;
 }
 
+/* Leaflet + markercluster CSS from node_modules */
+@import "leaflet/dist/leaflet.css";
+@import "leaflet.markercluster/dist/MarkerCluster.css";
+@import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+
 /* Leaflet container sizing */
 .leaflet-container {
   width: 100%;
@@ -24,4 +29,3 @@ html {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
-
