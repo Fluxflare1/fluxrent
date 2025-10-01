@@ -1,18 +1,18 @@
-import React, { LabelHTMLAttributes } from "react";
-import clsx from "clsx";
+"use client"
 
-type LabelProps = LabelHTMLAttributes<HTMLLabelElement> & {
-  className?: string;
-};
+import * as React from "react"
+import { cn } from "@/lib/utils"
 
-export default function Label({ className, ...props }: LabelProps) {
-  return (
-    <label
-      {...props}
-      className={clsx(
-        "block text-sm font-medium text-slate-700",
-        className
-      )}
-    />
-  );
-}
+const Label = React.forwardRef<
+  HTMLLabelElement,
+  React.LabelHTMLAttributes<HTMLLabelElement>
+>(({ className, ...props }, ref) => (
+  <label
+    ref={ref}
+    className={cn("text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70", className)}
+    {...props}
+  />
+))
+Label.displayName = "Label"
+
+export { Label }
