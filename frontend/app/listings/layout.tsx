@@ -1,5 +1,5 @@
 // app/listings/layout.tsx
-import "../globals.css";
+import "../../styles/globals.css";
 import { ReactNode } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
