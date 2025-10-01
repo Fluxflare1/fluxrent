@@ -1,47 +1,36 @@
 // frontend/lib/brandConfig.ts
-export type Brand = {
+export interface Brand {
   name: string;
   domain: string;
   title: string;
   description: string;
+  logo: string;
+  ogImage: string;
   themeColor: string;
-  logo: string; // public/ path (e.g. /branding/fluxrent-logo.svg)
-  ogImage: string; // public/ path for OG image
-  contact?: {
-    phone?: string;
-    email?: string;
-    address?: string;
-  };
-  social?: string[]; // optional social/profile links
-};
+  contact?: { email?: string };
+}
 
-export const brands: { fluxrent: Brand; checkalist: Brand } = {
+export const brands: Record<"fluxrent" | "checkalist", Brand> = {
   fluxrent: {
     name: "FluxRent",
     domain: "fluxrent.com",
-    title: "FluxRent — Property & Rent Management Platform",
+    title: "FluxRent — Property & Tenant Platform",
     description:
-      "FluxRent helps landlords, tenants, and managers with property management, rent collection, listings, and payments.",
-    themeColor: "#2563EB",
-    logo: "/branding/fluxrent-logo.svg",
-    ogImage: "/branding/fluxrent-og.png",
-    contact: {
-      email: "support@fluxrent.com",
-    },
-    social: ["https://twitter.com/fluxrent"],
+      "List properties, manage tenants, and collect payments — all from a unified platform.",
+    logo: "/logos/fluxrent-logo.svg",
+    ogImage: "/og/fluxrent-og.png",
+    themeColor: "#2563eb",
+    contact: { email: "support@fluxrent.com" },
   },
   checkalist: {
     name: "Checkalist",
     domain: "checkalist.com",
-    title: "Checkalist — Browse & Find Properties Easily",
+    title: "Checkalist — Collaborative Property Checklists",
     description:
-      "Discover properties for rent, lease, and sale with Checkalist. Filter, search, and explore listings with ease.",
-    themeColor: "#10B981",
-    logo: "/branding/checkalist-logo.svg",
-    ogImage: "/branding/checkalist-og.png",
-    contact: {
-      email: "hello@checkalist.com",
-    },
-    social: ["https://twitter.com/checkalist"],
+      "Inspect, share, and collaborate on property checklists with tenants and managers.",
+    logo: "/logos/checkalist-logo.svg",
+    ogImage: "/og/checkalist-og.png",
+    themeColor: "#16a34a",
+    contact: { email: "support@checkalist.com" },
   },
 };
