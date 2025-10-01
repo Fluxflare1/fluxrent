@@ -27,10 +27,14 @@ services:
     build:
       context: .
       dockerfile: docker/frontend/Dockerfile
+    working_dir: /app
     ports:
       - "3000:3000"
     volumes:
       - ./frontend:/app
+    environment:
+      - NODE_ENV=production
+    command: npm run start
 
   nginx:
     image: nginx:alpine
@@ -42,20 +46,16 @@ services:
       - backend
       - frontend
 
-volumes:
-  postgres_data:
-
-
-
-
-
-services:
   redis:
     image: redis:7
     ports:
       - "6379:6379"
+
   worker:
     build: .
     command: celery -A backend worker -l info
     depends_on:
       - redis
+
+volumes:
+  postgres_data:
