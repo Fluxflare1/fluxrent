@@ -1,9 +1,10 @@
-import React from "react";
+"use client"
 
-export default function Loader() {
+export function Loader({ size = 24 }: { size?: number }) {
   return (
-    <div className="flex justify-center items-center py-4">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-primary-600" />
-    </div>
-  );
+    <div
+      className="animate-spin rounded-full border-2 border-gray-300 border-t-transparent"
+      style={{ width: size, height: size }}
+    />
+  )
 }
