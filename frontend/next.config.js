@@ -3,31 +3,20 @@
 const nextConfig = {
   async rewrites() {
     return [
-      // FluxRent (main platform landing)
+      // FluxRent.com → landing app
       {
         source: "/:path*",
-        has: [
-          {
-            type: "host",
-            value: "fluxrent.com", // production domain
-          },
-        ],
-        destination: "/(landing)/:path*",
+        has: [{ type: "host", value: "fluxrent.com" }],
+        destination: "/landing/:path*",
       },
-
-      // Checkalist (listings hub)
+      // Checkalist.com → listings app
       {
         source: "/:path*",
-        has: [
-          {
-            type: "host",
-            value: "checkalist.com", // secondary domain
-          },
-        ],
-        destination: "/(listings)/:path*",
+        has: [{ type: "host", value: "checkalist.com" }],
+        destination: "/listings/:path*",
       },
-    ]
+    ];
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
