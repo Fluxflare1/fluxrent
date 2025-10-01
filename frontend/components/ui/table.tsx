@@ -1,37 +1,20 @@
-import React from "react";
+"use client"
 
-export function Table({ children }: { children: React.ReactNode }) {
-  return (
-    <table className="min-w-full divide-y divide-slate-200 border border-slate-200 rounded-md">
-      {children}
-    </table>
-  );
+import * as React from "react"
+import { cn } from "@/lib/utils"
+
+export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
+  return <table className={cn("w-full border-collapse border text-sm", className)} {...props} />
 }
 
-export function TableHead({ children }: { children: React.ReactNode }) {
-  return (
-    <thead className="bg-slate-50">
-      <tr>{children}</tr>
-    </thead>
-  );
+export function Th({ className, ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) {
+  return <th className={cn("border px-3 py-2 text-left font-semibold bg-muted", className)} {...props} />
 }
 
-export function TableHeader({ children }: { children: React.ReactNode }) {
-  return (
-    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">
-      {children}
-    </th>
-  );
+export function Td({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
+  return <td className={cn("border px-3 py-2", className)} {...props} />
 }
 
-export function TableBody({ children }: { children: React.ReactNode }) {
-  return <tbody className="divide-y divide-slate-200">{children}</tbody>;
-}
-
-export function TableRow({ children }: { children: React.ReactNode }) {
-  return <tr>{children}</tr>;
-}
-
-export function TableCell({ children }: { children: React.ReactNode }) {
-  return <td className="px-4 py-2 text-sm">{children}</td>;
+export function Tr({ className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
+  return <tr className={cn("hover:bg-accent", className)} {...props} />
 }
