@@ -1,29 +1,31 @@
-import React from "react";
-import clsx from "clsx";
+"use client"
 
-interface BadgeProps {
-  children: React.ReactNode;
-  variant?: "default" | "success" | "warning" | "danger";
-  className?: string;
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "@/lib/utils"
+
+const badgeVariants = cva(
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground",
+        secondary: "bg-secondary text-secondary-foreground",
+        outline: "text-foreground border",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof badgeVariants> {}
+
+function Badge({ className, variant, ...props }: BadgeProps) {
+  return <div className={cn(badgeVariants({ variant }), className)} {...props} />
 }
 
-export default function Badge({
-  children,
-  variant = "default",
-  className,
-}: BadgeProps) {
-  return (
-    <span
-      className={clsx(
-        "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-        variant === "default" && "bg-slate-100 text-slate-800",
-        variant === "success" && "bg-green-100 text-green-800",
-        variant === "warning" && "bg-yellow-100 text-yellow-800",
-        variant === "danger" && "bg-red-100 text-red-800",
-        className
-      )}
-    >
-      {children}
-    </span>
-  );
-}
+export { Badge, badgeVariants }
