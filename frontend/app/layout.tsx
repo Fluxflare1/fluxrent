@@ -1,32 +1,31 @@
-// frontend/app/layout.tsx
-import "../styles/globals.css";
-import { ReactNode } from "react";
-import Footer from "@/components/Footer";
-import { AuthProvider } from "@/components/AuthProvider";
-import BrandHeader from "@/components/BrandHeader";
-import { brands } from "@/lib/brandConfig";
-import { cookies, headers } from "next/headers";
-import type { Metadata } from "next";
-import { Button, ToastContainer, Pagination, Loader } from "@/components/ui"
+import "../styles/globals.css"
+import { ReactNode } from "react"
+import Footer from "@/components/Footer"
+import { AuthProvider } from "@/components/AuthProvider"
+import BrandHeader from "@/components/BrandHeader"
+import { brands } from "@/lib/brandConfig"
+import { cookies, headers } from "next/headers"
+import type { Metadata } from "next"
+import { Providers } from "@/components/providers"
 
 function detectBrand() {
-  const cookieStore = cookies();
-  const brandCookie = cookieStore.get("brand")?.value;
+  const cookieStore = cookies()
+  const brandCookie = cookieStore.get("brand")?.value
 
   if (brandCookie && brands[brandCookie as "fluxrent" | "checkalist"]) {
-    return brands[brandCookie as "fluxrent" | "checkalist"];
+    return brands[brandCookie as "fluxrent" | "checkalist"]
   }
 
-  const host = headers().get("host") || "";
-  return host.includes("checkalist.com") ? brands.checkalist : brands.fluxrent;
+  const host = headers().get("host") || ""
+  return host.includes("checkalist.com") ? brands.checkalist : brands.fluxrent
 }
 
 /**
  * Domain-aware metadata generator
  */
 export async function generateMetadata(): Promise<Metadata> {
-  const brand = detectBrand();
-  const url = `https://${brand.domain}`;
+  const brand = detectBrand()
+  const url = `https://${brand.domain}`
 
   return {
     title: brand.title,
@@ -46,12 +45,12 @@ export async function generateMetadata(): Promise<Metadata> {
       description: brand.description,
       images: [brand.ogImage],
     },
-  };
+  }
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const brand = detectBrand();
-  const canonicalUrl = `https://${brand.domain}`;
+  const brand = detectBrand()
+  const canonicalUrl = `https://${brand.domain}`
 
   // JSON-LD varies by brand
   const jsonLd =
@@ -82,22 +81,27 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               contactType: "customer support",
             },
           ],
-        };
+        }
 
   return (
     <html lang="en">
       <head>
         <link rel="icon" href={brand.logo} />
         <meta name="theme-color" content={brand.themeColor} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </head>
       <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
-        <AuthProvider>
-          <BrandHeader />
-          <main className="flex-1 container mx-auto px-4 py-8">{children}</main>
-          <Footer />
-        </AuthProvider>
+        <Providers>
+          <AuthProvider>
+            <BrandHeader />
+            <main className="flex-1 container mx-auto px-4 py-8">{children}</main>
+            <Footer />
+          </AuthProvider>
+        </Providers>
       </body>
     </html>
-  );
+  )
 }
