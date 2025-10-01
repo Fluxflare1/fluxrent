@@ -1,6 +1,14 @@
-// next.config.js
+// frontend/next.config.js
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
+
+  // App Router is stable now, no need for experimental.appDir
+  experimental: {
+    typedRoutes: true, // optional, enables better TS checks
+  },
+
   async rewrites() {
     return [
       // FluxRent.com → landing app
