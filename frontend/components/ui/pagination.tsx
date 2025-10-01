@@ -1,38 +1,30 @@
-import React from "react";
-import Button from "./button";
+"use client"
+
+import { cn } from "@/lib/utils"
+import { Button } from "./button"
 
 interface PaginationProps {
-  page: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
+  page: number
+  pageSize: number
+  total: number
+  onPageChange: (page: number) => void
 }
 
-export default function Pagination({
-  page,
-  totalPages,
-  onPageChange,
-}: PaginationProps) {
-  if (totalPages <= 1) return null;
+export function Pagination({ page, pageSize, total, onPageChange }: PaginationProps) {
+  const totalPages = Math.ceil(total / pageSize)
+  if (totalPages <= 1) return null
 
   return (
-    <div className="flex justify-center space-x-2 mt-4">
-      <Button
-        variant="secondary"
-        disabled={page === 1}
-        onClick={() => onPageChange(page - 1)}
-      >
+    <div className="flex items-center justify-center gap-2 mt-4">
+      <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
         Prev
       </Button>
-      <span className="px-2 py-1 text-sm">
+      <span className="text-sm">
         Page {page} of {totalPages}
       </span>
-      <Button
-        variant="secondary"
-        disabled={page === totalPages}
-        onClick={() => onPageChange(page + 1)}
-      >
+      <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
         Next
       </Button>
     </div>
-  );
+  )
 }
