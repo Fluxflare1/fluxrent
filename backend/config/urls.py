@@ -4,7 +4,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/owner/", include("owner.urls")),
+    path("api/platform-admin/", include("platform_admin.urls")),
     path("api/users/", include("users.urls")),
     path("api/properties", include("properties.urls")),
     path("api/tenants/", include("tenants.urls")),  # ✅ Tenants bonding system
@@ -18,9 +18,3 @@ urlpatterns = [
     path("api/docs/swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/docs/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
-
-
-
-
-
-#
