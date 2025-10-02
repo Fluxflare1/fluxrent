@@ -1,141 +1,153 @@
+// frontend/app/dashboard/owner/page.tsx
 "use client";
+
+import React, { useMemo } from "react";
+import { useRevenueStats, useUserGrowth, useTopBoosts } from "@/lib/hooks/useOwnerStats";
 import {
   LineChart,
   Line,
   XAxis,
   YAxis,
   Tooltip,
-  CartesianGrid,
   ResponsiveContainer,
   BarChart,
+  CartesianGrid,
   Bar,
   Legend,
 } from "recharts";
+import { format } from "date-fns";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // adjust import if your UI exports are different
+import { Loader } from "@/components/ui"; // small loader component or replace with your spinner
 
-const revenueData = [
-  { month: "May", revenue: 320000 },
-  { month: "Jun", revenue: 450000 },
-  { month: "Jul", revenue: 380000 },
-  { month: "Aug", revenue: 600000 },
-  { month: "Sep", revenue: 720000 },
-  { month: "Oct", revenue: 1240000 },
-];
+const ngn = new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 });
 
-const userGrowthData = [
-  { month: "May", users: 120 },
-  { month: "Jun", users: 180 },
-  { month: "Jul", users: 250 },
-  { month: "Aug", users: 300 },
-  { month: "Sep", users: 450 },
-  { month: "Oct", users: 520 },
-];
-
-const topBoostedProperties = [
-  { property: "Lekki Phase 1 Apt", revenue: 450000 },
-  { property: "Abuja Duplex", revenue: 300000 },
-  { property: "Ikeja Bungalow", revenue: 220000 },
-  { property: "Victoria Island Loft", revenue: 180000 },
-];
+function monthLabel(isoMonth: string) {
+  // isoMonth e.g. "2025-10" -> "Oct 2025"
+  try {
+    const parsed = new Date(isoMonth + "-01");
+    return format(parsed, "MMM yyyy");
+  } catch {
+    return isoMonth;
+  }
+}
 
 export default function OwnerDashboardPage() {
+  // Optionally allow query params for date ranges; here we fetch last 6 months by default.
+  const revenueQ = useRevenueStats();
+  const usersQ = useUserGrowth();
+  const topQ = useTopBoosts({ limit: 6 });
+
+  const revenueData = revenueQ.data ?? [];
+  const usersData = usersQ.data ?? [];
+  const topData = topQ.data ?? [];
+
+  const formattedRevenue = useMemo(
+    () =>
+      revenueData.map((d) => ({
+        month: monthLabel(d.month),
+        value: d.value,
+        rawMonth: d.month,
+      })),
+    [revenueData]
+  );
+
+  const formattedUsers = useMemo(
+    () =>
+      usersData.map((d) => ({
+        month: monthLabel(d.month),
+        value: d.value,
+        rawMonth: d.month,
+      })),
+    [usersData]
+  );
+
+  const formattedTop = useMemo(
+    () =>
+      topData.map((t) => ({
+        name: t.title || `#${t.property_id}`,
+        revenue: t.revenue,
+      })),
+    [topData]
+  );
+
   return (
-    <div className="space-y-8">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Total Users</CardTitle>
+            <CardTitle>Revenue Trend (last months)</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">1,245</p>
+            {revenueQ.isLoading ? (
+              <div className="h-64 flex items-center justify-center">
+                <Loader />
+              </div>
+            ) : (
+              <div style={{ height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={formattedRevenue}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis tickFormatter={(v) => ngn.format ? ngn.format(v) : v} />
+                    <Tooltip formatter={(v: number) => ngn.format ? ngn.format(v) : v} />
+                    <Line type="monotone" dataKey="value" stroke="#0ea5e9" strokeWidth={2} dot />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Boost Revenue</CardTitle>
+            <CardTitle>User Growth (new signups)</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">₦1,240,000</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Active Boosts</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">37</p>
+            {usersQ.isLoading ? (
+              <div className="h-64 flex items-center justify-center">
+                <Loader />
+              </div>
+            ) : (
+              <div style={{ height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={formattedUsers}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="value" stroke="#34d399" strokeWidth={2} dot />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Revenue Trend */}
       <Card>
         <CardHeader>
-          <CardTitle>Revenue Trend (Last 6 Months)</CardTitle>
+          <CardTitle>Top Boosted Properties (by revenue)</CardTitle>
         </CardHeader>
-        <CardContent className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={revenueData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip formatter={(value: number) => `₦${value.toLocaleString()}`} />
-              <Line
-                type="monotone"
-                dataKey="revenue"
-                stroke="#2563eb"
-                strokeWidth={2}
-                dot={{ r: 4 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* User Growth */}
-      <Card>
-        <CardHeader>
-          <CardTitle>User Growth</CardTitle>
-        </CardHeader>
-        <CardContent className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={userGrowthData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="users"
-                stroke="#16a34a"
-                strokeWidth={2}
-                dot={{ r: 4 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Top Boosted Properties */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Top Boosted Properties</CardTitle>
-        </CardHeader>
-        <CardContent className="h-96">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={topBoostedProperties}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="property" />
-              <YAxis />
-              <Tooltip formatter={(value: number) => `₦${value.toLocaleString()}`} />
-              <Legend />
-              <Bar dataKey="revenue" fill="#f97316" barSize={50} />
-            </BarChart>
-          </ResponsiveContainer>
+        <CardContent>
+          {topQ.isLoading ? (
+            <div className="h-48 flex items-center justify-center">
+              <Loader />
+            </div>
+          ) : (
+            <div style={{ height: 360 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={formattedTop} layout="vertical" margin={{ left: 40, right: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" tickFormatter={(v) => ngn.format ? ngn.format(v) : v} />
+                  <YAxis dataKey="name" type="category" width={220} />
+                  <Tooltip formatter={(v: number) => ngn.format ? ngn.format(v) : v} />
+                  <Legend />
+                  <Bar dataKey="revenue" fill="#f97316" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
