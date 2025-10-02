@@ -195,6 +195,9 @@ CHANNEL_LAYERS = {
 
 
 
-
+# settings.py
+OWNER_STATS_BOOST_MODEL = "wallets.Boost"           # example replacement
+OWNER_STATS_PROPERTY_MODEL = "listings.Property"    # adjust to your property model
+OWNER_STATS_USER_MODEL = "auth.User"                # default is fine
 
    
