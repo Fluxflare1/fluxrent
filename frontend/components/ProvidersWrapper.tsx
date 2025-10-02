@@ -1,4 +1,3 @@
-// frontend/components/ProvidersWrapper.tsx
 "use client"
 
 import React from "react"
@@ -8,6 +7,20 @@ import { ToastContainer } from "@/components/ui/toast"
 import { AuthProvider } from "@/components/AuthProvider"
 import BrandHeader from "@/components/BrandHeader"
 import Footer from "@/components/Footer"
+import { brands } from "@/lib/brandConfig"
+import { cookies, headers } from "next/headers"
+
+function detectBrand() {
+  const cookieStore = cookies()
+  const brandCookie = cookieStore.get("brand")?.value
+
+  if (brandCookie && brands[brandCookie as "fluxrent" | "checkalist"]) {
+    return brands[brandCookie as "fluxrent" | "checkalist"]
+  }
+
+  const host = headers().get("host") || ""
+  return host.includes("checkalist.com") ? brands.checkalist : brands.fluxrent
+}
 
 export default function ProvidersWrapper({ children }: { children?: React.ReactNode }) {
   const [queryClient] = React.useState(
@@ -19,6 +32,8 @@ export default function ProvidersWrapper({ children }: { children?: React.ReactN
       })
   )
 
+  const brand = detectBrand()
+
   return (
     <NextThemesProvider
       attribute="class"
@@ -28,9 +43,9 @@ export default function ProvidersWrapper({ children }: { children?: React.ReactN
     >
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <BrandHeader />
+          <BrandHeader brand={brand} />
           <main className="flex-1 container mx-auto px-4 py-8">{children}</main>
-          <Footer />
+          <Footer brand={brand} />
           <ToastContainer />
         </AuthProvider>
       </QueryClientProvider>
