@@ -3,7 +3,7 @@ from rest_framework import serializers
 from users.models import User
 from properties.models import Property
 from wallets.models import Transaction
-from .models import PlatformSetting, AdminActionLog
+from .models import PlatformSetting
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,8 +25,6 @@ class PlatformSettingSerializer(serializers.ModelSerializer):
         model = PlatformSetting
         fields = "__all__"
 
-
-
 class RevenueTrendSerializer(serializers.Serializer):
     month = serializers.CharField()
     revenue = serializers.DecimalField(max_digits=12, decimal_places=2)
@@ -39,3 +37,12 @@ class TopBoostedPropertySerializer(serializers.Serializer):
     property_id = serializers.IntegerField()
     title = serializers.CharField()
     boosts = serializers.IntegerField()
+
+class MonthValueSerializer(serializers.Serializer):
+    month = serializers.CharField()
+    value = serializers.FloatField()
+
+class TopBoostPropertySerializer(serializers.Serializer):
+    property_id = serializers.IntegerField()
+    title = serializers.CharField()
+    revenue = serializers.FloatField()
