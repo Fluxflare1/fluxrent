@@ -24,3 +24,18 @@ class PlatformSettingSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlatformSetting
         fields = "__all__"
+
+
+
+class RevenueTrendSerializer(serializers.Serializer):
+    month = serializers.CharField()
+    revenue = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+class UserGrowthSerializer(serializers.Serializer):
+    month = serializers.CharField()
+    users = serializers.IntegerField()
+
+class TopBoostedPropertySerializer(serializers.Serializer):
+    property_id = serializers.IntegerField()
+    title = serializers.CharField()
+    boosts = serializers.IntegerField()
