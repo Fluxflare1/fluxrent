@@ -1,14 +1,23 @@
 # backend/owner/urls.py
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import DashboardViewSet, UserManagementViewSet, PropertyManagementViewSet, PlatformSettingViewSet, NotificationBroadcastViewSet, RevenueStatsView, UserGrowthView, TopBoostsView
+from .views import (
+    DashboardViewSet, 
+    UserManagementViewSet, 
+    PropertyManagementViewSet, 
+    PlatformSettingViewSet, 
+    NotificationBroadcastViewSet, 
+    RevenueStatsView, 
+    UserGrowthView, 
+    TopBoostsView
+)
 
 router = DefaultRouter()
-router.register("dashboard", DashboardViewSet, basename="dashboard")
-router.register("users", UserManagementViewSet, basename="users")
-router.register("properties", PropertyManagementViewSet, basename="properties")
-router.register("settings", PlatformSettingViewSet, basename="settings")
-router.register("notifications", NotificationBroadcastViewSet, basename="notifications")
+router.register("dashboard", DashboardViewSet, basename="owner-dashboard")
+router.register("users", UserManagementViewSet, basename="owner-users")
+router.register("properties", PropertyManagementViewSet, basename="owner-properties")
+router.register("settings", PlatformSettingViewSet, basename="owner-settings")
+router.register("notifications", NotificationBroadcastViewSet, basename="owner-notifications")
 
 urlpatterns = [
     path("", include(router.urls)),
