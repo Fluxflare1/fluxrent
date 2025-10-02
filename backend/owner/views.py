@@ -101,3 +101,52 @@ class NotificationBroadcastViewSet(viewsets.ViewSet):
         )
 
         return Response({"status": "sent", "recipients": len(recipients)})
+
+
+from django.db.models import Sum, Count
+from django.utils.timezone import now
+from django.db.models.functions import TruncMonth
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .serializers import RevenueTrendSerializer, UserGrowthSerializer, TopBoostedPropertySerializer
+from payments.models import Payment  # adjust to your app
+from users.models import User
+from listings.models import Listing, Boost
+
+@api_view(["GET"])
+def revenue_trend(request):
+    six_months_ago = now().date().replace(day=1).month - 5
+    qs = (
+        Payment.objects.filter(created_at__gte=six_months_ago)
+        .annotate(month=TruncMonth("created_at"))
+        .values("month")
+        .annotate(revenue=Sum("amount"))
+        .order_by("month")
+    )
+    data = [{"month": x["month"].strftime("%b %Y"), "revenue": x["revenue"] or 0} for x in qs]
+    return Response(RevenueTrendSerializer(data, many=True).data)
+
+@api_view(["GET"])
+def user_growth(request):
+    qs = (
+        User.objects.filter(date_joined__gte=now().date().replace(day=1).month - 5)
+        .annotate(month=TruncMonth("date_joined"))
+        .values("month")
+        .annotate(users=Count("id"))
+        .order_by("month")
+    )
+    data = [{"month": x["month"].strftime("%b %Y"), "users": x["users"]} for x in qs]
+    return Response(UserGrowthSerializer(data, many=True).data)
+
+@api_view(["GET"])
+def top_boosted_properties(request):
+    qs = (
+        Boost.objects.values("listing__id", "listing__title")
+        .annotate(boosts=Count("id"))
+        .order_by("-boosts")[:5]
+    )
+    data = [
+        {"property_id": x["listing__id"], "title": x["listing__title"], "boosts": x["boosts"]}
+        for x in qs
+    ]
+    return Response(TopBoostedPropertySerializer(data, many=True).data)
