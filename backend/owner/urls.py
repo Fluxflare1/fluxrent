@@ -25,3 +25,4 @@ urlpatterns = [
     path("stats/users/", UserGrowthView.as_view(), name="owner-stats-users"),
     path("stats/top-boosts/", TopBoostsView.as_view(), name="owner-stats-top-boosts"),
 ]
+
