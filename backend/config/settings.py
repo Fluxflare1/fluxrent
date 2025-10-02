@@ -37,6 +37,7 @@ INSTALLED_APPS = [
 
     # Local apps
     "users.apps.UsersConfig",
+    "platform_admin.apps.Platform_adminConfig",
     "properties.apps.PropertiesConfig",
     "bills.apps.BillsConfig",
     "wallets.apps.WalletsConfig",
