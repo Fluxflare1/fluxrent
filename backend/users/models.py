@@ -16,7 +16,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     UID is generated on save.
     """
     class Roles(models.TextChoices):
-        PLATFORM_OWNER = "platform_owner", "Platform Owner"
+        PLATFORM_ADMIN = "platform_admin", "Platform Admin"
+        PROPERTY_OWNER = "property_owner", "Property Owner"
         PROPERTY_MANAGER = "property_manager", "Property Manager"
         AGENT = "agent", "Agent"
         TENANT = "tenant", "Tenant"
@@ -28,6 +29,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=80, blank=True)
     last_name = models.CharField(max_length=80, blank=True)
+    middle_name = models.CharField(max_length=80, blank=True)
     phone_number = models.CharField(max_length=32, blank=True)
     role = models.CharField(max_length=32, choices=Roles.choices, default=Roles.VIEWER)
     is_active = models.BooleanField(default=True)
