@@ -16,7 +16,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     UID is generated on save.
     """
     class Roles(models.TextChoices):
-        PLATFORM_ADMIN = "platform_admin", "Platform Admin"
         PROPERTY_OWNER = "property_owner", "Property Owner"
         PROPERTY_MANAGER = "property_manager", "Property Manager"
         AGENT = "agent", "Agent"
