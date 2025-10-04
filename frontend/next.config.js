@@ -1,11 +1,9 @@
-// frontend/next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
 
-  experimental: {
-    typedRoutes: true,
-  },
+  // Update: Use the stable version instead of experimental
+  typedRoutes: true,
 
   async rewrites() {
     return [
