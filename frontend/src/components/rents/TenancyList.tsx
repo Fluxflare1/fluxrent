@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRentStore } from "@/store/rent.store";
+import TenancyForm from "./TenancyForm";
 
 export default function TenancyList() {
   const { tenancies, fetchTenancies, loading } = useRentStore();
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     fetchTenancies();
@@ -14,7 +16,25 @@ export default function TenancyList() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Tenancies</h2>
+      <div className="flex justify-between">
+        <h2 className="text-xl font-semibold">Tenancies</h2>
+        <button
+          onClick={() => setShowForm(true)}
+          className="px-3 py-1 bg-green-600 text-white rounded"
+        >
+          + Add
+        </button>
+      </div>
+
+      {showForm && (
+        <TenancyForm
+          onSuccess={() => {
+            fetchTenancies();
+            setShowForm(false);
+          }}
+        />
+      )}
+
       <ul className="divide-y">
         {tenancies.map((t) => (
           <li key={t.id} className="p-2 flex justify-between">
