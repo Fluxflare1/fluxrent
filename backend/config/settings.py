@@ -202,3 +202,21 @@ OWNER_STATS_PROPERTY_MODEL = "listings.Property"    # adjust to your property mo
 OWNER_STATS_USER_MODEL = "auth.User"                # default is fine
 
    
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'your-smtp-host'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'your-email@fluxrent.com'
+EMAIL_HOST_PASSWORD = 'your-email-password'
+DEFAULT_FROM_EMAIL = 'noreply@fluxrent.com'
+
+# Frontend URL for email links
+FRONTEND_URL = 'https://yourapp.com'
+
+# JWT Configuration
+SIMPLE_JWT = {
+    'USER_ID_FIELD': 'uid',
+    'USER_ID_CLAIM': 'uid',
+}
