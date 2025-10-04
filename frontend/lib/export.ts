@@ -1,5 +1,5 @@
 // frontend/lib/export.ts
-export default function exportToCsv(rows: Record<string, any>[], filename = "export.csv") {
+export function exportToCSV(rows: Record<string, any>[], filename = "export.csv") {
   if (!rows || rows.length === 0) {
     const blob = new Blob([""], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
