@@ -25,7 +25,32 @@ It integrates **frontend (Next.js/React)** with **backend (Django REST Framework
 ### Structure
 
 
-## Frontend
-### Structure
-
 src/ ├── app/dashboard/rents/page.tsx         # Rent dashboard ├── components/rents/ │    ├── TenancyList.tsx │    ├── TenancyForm.tsx │    ├── InvoiceList.tsx │    ├── InvoiceForm.tsx │    ├── PaymentForm.tsx │    ├── ReceiptViewer.tsx ├── services/rent.service.ts             # API integration ├── store/rent.store.ts                  # Zustand store └── types/rent.types.ts                  # TypeScript interfaces
+
+
+
+
+### Features
+- **Tenancies**
+  - List, Create, Update
+- **Invoices**
+  - List, Generate
+- **Payments**
+  - Wallet & External (bank/cash)
+  - Confirm payments
+- **Receipts**
+  - Download PDF
+
+---
+
+## Integration Notes
+- Wallet auto-created at KYC (see User module).  
+- Payments update Wallet balance on backend.  
+- Receipts are immutable; only generated after confirmed payment.  
+
+---
+
+## Next Steps
+- Connect User & KYC modules.  
+- Integrate Wallet module deeply with rent flows.  
+- Add reporting dashboards (late fees, rent collection trends).
