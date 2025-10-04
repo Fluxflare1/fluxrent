@@ -1,6 +1,6 @@
 // frontend/app/dashboard/tenant/rents/receipt/[id]/page.tsx
 import React from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch } from "@/lib/";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
