@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import Button from "@/components/ui/button";   // ✅ fixed alias
+import { Button } from '@/components/ui/button';   // ✅ fixed alias
 
 type Dispute = {
   id: number;
