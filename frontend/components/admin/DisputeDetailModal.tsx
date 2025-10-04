@@ -2,10 +2,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { apiFetch, ENDPOINTS } from "@/lib/api";        // ✅ fixed alias
-import Button from "@/components/ui/button";            // ✅ fixed alias
-import Textarea from "@/components/ui/textarea";        // ✅ fixed alias
-import { useToast } from "@/hooks/use-toast";           // ✅ fixed alias
+import { apiFetch, ENDPOINTS } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 type Comment = {
   id: string;
