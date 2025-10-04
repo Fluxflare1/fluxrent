@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import InvoiceForm from "@/components/forms/InvoiceForm";
-import { fetchInvoice, updateInvoice } from "@/lib/api/bills";
+import { fetchInvoice, updateInvoice } from "@/lib/bills";
 import { useRouter, useParams } from "next/navigation";
 import api from "@/lib/api";
 
