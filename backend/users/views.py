@@ -1,10 +1,11 @@
-
-code 1 (existing code)
-
+# backend/users/views.py
 from rest_framework import viewsets, status, permissions
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils.crypto import get_random_string
 
 from .models import User, KYC
 from .serializers import UserSerializer, UserCreateSerializer, KYCSerializer, ChangePasswordSerializer
@@ -17,9 +18,10 @@ class ObtainTokenPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        # Add custom claims
+        # Add custom claims for frontend role-based routing
         token["role"] = user.role
         token["uid"] = user.uid
+        token["kyc_completed"] = hasattr(user, 'kyc') and user.kyc.is_completed
         return token
 
 
@@ -45,11 +47,13 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def me(self, request):
+        """GET /users/me/ - Current user profile for dashboard"""
         serializer = UserSerializer(request.user, context={"request": request})
         return Response(serializer.data)
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
     def set_password(self, request, pk=None):
+        """POST /users/{id}/set_password/ - Change password"""
         user = self.get_object()
         if request.user != user and not request.user.is_superuser:
             return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
@@ -61,12 +65,14 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save()
         return Response({"detail": "Password updated."})
 
-    @action(detail=True, methods=["get", "put"], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=True, methods=["get", "put", "patch"], permission_classes=[permissions.IsAuthenticated])
     def kyc(self, request, pk=None):
+        """GET/PUT /users/{id}/kyc/ - Complete KYC form"""
         user = self.get_object()
         # Only self or platform owner can view/edit KYC
         if request.user != user and not request.user.is_superuser:
             return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+        
         if request.method == "GET":
             if hasattr(user, "kyc"):
                 ser = KYCSerializer(user.kyc)
@@ -78,56 +84,87 @@ class UserViewSet(viewsets.ModelViewSet):
             ser = KYCSerializer(obj, data=data, partial=True)
             ser.is_valid(raise_exception=True)
             ser.save()
+            
+            # If KYC is being marked as completed, generate wallet for user
+            if ser.validated_data.get('is_completed') and not created:
+                # TODO: Add wallet generation logic here
+                pass
+                
             return Response(ser.data)
 
 
-
-
-
-code 2 (new code) the ai that generated it said i should extend views.py with it so what do we do
-
-from rest_framework.decorators import api_view
-from django.core.mail import send_mail
-from django.conf import settings
-from django.utils.crypto import get_random_string
-
-@api_view(["post"])
+@api_view(["POST"])
+@permission_classes([permissions.AllowAny])
 def request_access(request):
     """
-    Request Access (Signup Step 1).
-    Creates a pending user record and sends email verification.
+    POST /users/request-access/ - Request Access (Signup Step 1)
+    Creates a pending user record and sends email with temporary credentials
     """
     data = request.data
     email = data.get("email")
-    phone = data.get("phone_number")
+    phone_number = data.get("phone_number")
     first_name = data.get("first_name")
     last_name = data.get("last_name")
 
     if not email:
-        return Response({"error": "Email is required"}, status=400)
+        return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # temporary password (force reset on login)
-    temp_password = get_random_string(length=10)
+    # Check if user already exists
+    if User.objects.filter(email=email).exists():
+        return Response(
+            {"error": "User with this email already exists. Please login or reset your password."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
-    user, created = User.objects.get_or_create(
-        email=email,
-        defaults={
-            "first_name": first_name,
-            "last_name": last_name,
-            "phone_number": phone,
-            "is_active": True,  # active but no KYC yet
-        },
-    )
+    # Generate temporary password
+    temp_password = get_random_string(length=12)
 
-    if created:
+    try:
+        # Create user with temporary password
+        user = User.objects.create(
+            email=email,
+            first_name=first_name or "",
+            last_name=last_name or "",
+            phone_number=phone_number or "",
+            is_active=True,  # Active but needs KYC completion
+        )
         user.set_password(temp_password)
         user.save()
 
+        # Send welcome email with temporary credentials
         send_mail(
-            "Welcome to FluxRent",
-            f"Hello {first_name},\n\nYour account has been created.\nUse this link to set your password and complete KYC.\n\nUsername: {email}\nTemp Password: {temp_password}",
-            settings.DEFAULT_FROM_EMAIL,
-            [email],
+            subject="Welcome to FluxRent - Your Account Access",
+            message=(
+                f"Hello {first_name or 'there'},\n\n"
+                f"Your FluxRent account has been successfully created!\n\n"
+                f"Here are your temporary credentials:\n"
+                f"Email: {email}\n"
+                f"Temporary Password: {temp_password}\n\n"
+                f"Please follow these steps to get started:\n"
+                f"1. Login at: {getattr(settings, 'FRONTEND_URL', '')}/auth/login\n"
+                f"2. Change your temporary password\n"
+                f"3. Complete your KYC verification\n"
+                f"4. Access your dashboard\n\n"
+                f"For security reasons, please change your password after first login.\n\n"
+                f"Welcome aboard!\n"
+                f"The FluxRent Team"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
         )
 
-    return Response({"detail": "Access requested. Please check your email."})
+        return Response(
+            {
+                "detail": "Access requested successfully. Please check your email for temporary credentials and instructions.",
+                "user_id": user.uid
+            },
+            status=status.HTTP_201_CREATED
+        )
+
+    except Exception as e:
+        # Log the error in production
+        return Response(
+            {"error": "Failed to create account. Please try again."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
