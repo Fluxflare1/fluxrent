@@ -1,4 +1,6 @@
-import api from "../api";
+
+// Potential future improvement (more robust)
+import api from "@/lib/api";
 
 export interface TenantBond {
   id: number;
