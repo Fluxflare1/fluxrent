@@ -1,0 +1,25 @@
+"use client";
+import { useEffect, useState } from "react";
+import { fetchInvoice } from "@/lib/bills";
+import InvoiceDetail from "@/components/bills/InvoiceDetail";
+import { useParams } from "next/navigation";
+
+export default function InvoiceDetailPage() {
+  const params = useParams();
+  const [invoice, setInvoice] = useState<any>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await fetchInvoice(params.invoiceId as string);
+      setInvoice(data);
+    })();
+  }, [params.invoiceId]);
+
+  if (!invoice) return <p>Loading...</p>;
+
+  return (
+    <div className="p-6">
+      <InvoiceDetail invoice={invoice} />
+    </div>
+  );
+}
