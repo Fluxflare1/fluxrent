@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import InvoiceForm from "@/components/forms/InvoiceForm";
-import { createInvoice } from "@/lib/api/bills";
+import { createInvoice } from "@/lib/bills";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 
