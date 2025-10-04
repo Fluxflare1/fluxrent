@@ -2,11 +2,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import api, { ENDPOINTS } from "@/lib/api"; // ✅ fixed import
-import Button from "@/components/ui/button"; // ✅ fixed import
-import Input from "@/components/ui/input";   // ✅ fixed import
-import { useToast } from "@/hooks/use-toast"; // ✅ fixed import
-import { exportToCSV } from "@/lib/export";   // ✅ fixed import
+import api, { ENDPOINTS } from "@/lib/api";
+import { Button } from "@/components/ui/button"; // ← Named import
+import { Input } from "@/components/ui/input";   // ← Named import
+import { useToast } from "@/hooks/use-toast";
+import { exportToCSV } from "@/lib/export";
 
 interface Dispute {
   id: number;
