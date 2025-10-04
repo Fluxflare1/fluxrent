@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { fetchInvoices, deleteInvoice } from "@/lib/api/bills";
+import { fetchInvoices, deleteInvoice } from "@/lib/bills";
 import Link from "next/link";
 import api from "@/lib/api";
 
