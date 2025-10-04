@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRentStore } from "@/store/rent.store";
+import InvoiceForm from "./InvoiceForm";
 
 export default function InvoiceList() {
   const { invoices, fetchInvoices, loading } = useRentStore();
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     fetchInvoices();
@@ -14,7 +16,23 @@ export default function InvoiceList() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Invoices</h2>
+      <div className="flex justify-between">
+        <h2 className="text-xl font-semibold">Invoices</h2>
+        <button
+          onClick={() => setShowForm(true)}
+          className="px-3 py-1 bg-green-600 text-white rounded"
+        >
+          + Generate
+        </button>
+      </div>
+
+      {showForm && (
+        <InvoiceForm tenancyId={1} onSuccess={() => {
+          fetchInvoices();
+          setShowForm(false);
+        }} />
+      )}
+
       <ul className="divide-y">
         {invoices.map((inv) => (
           <li key={inv.id} className="p-2 flex justify-between">
