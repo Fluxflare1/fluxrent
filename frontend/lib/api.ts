@@ -13,24 +13,35 @@ export const api = axios.create({
   timeout: 10000, // 10 seconds
 });
 
+// Create auth API instance
+export const authApi = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true,
+  timeout: 10000,
+});
+
 // ------------------------------
 // Request Interceptor - Add Auth Token
 // ------------------------------
-api.interceptors.request.use(
-  (config) => {
-    // Safely access localStorage only on client side
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+const setupRequestInterceptor = (instance: typeof api | typeof authApi) => {
+  instance.interceptors.request.use(
+    (config) => {
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
+      return config;
+    },
+    (error: AxiosError) => {
+      return Promise.reject(error);
     }
-    return config;
-  },
-  (error: AxiosError) => {
-    return Promise.reject(error);
-  }
-);
+  );
+};
+
+setupRequestInterceptor(api);
+setupRequestInterceptor(authApi);
 
 // ------------------------------
 // Response Interceptor - Handle Token Refresh & Errors
@@ -40,14 +51,12 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as any;
 
-    // Handle 401 Unauthorized (token expired)
     if (error.response?.status === 401 && !originalRequest?._retry) {
       originalRequest._retry = true;
 
       try {
         const refreshToken = localStorage.getItem('refresh_token');
         if (refreshToken) {
-          // Attempt to refresh tokens
           const refreshResponse = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
             refresh: refreshToken
           });
@@ -55,12 +64,10 @@ api.interceptors.response.use(
           const { access } = refreshResponse.data;
           localStorage.setItem('access_token', access);
           
-          // Retry original request with new token
           originalRequest.headers.Authorization = `Bearer ${access}`;
           return api(originalRequest);
         }
       } catch (refreshError) {
-        // Refresh failed - redirect to login
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         if (typeof window !== 'undefined') {
@@ -70,21 +77,95 @@ api.interceptors.response.use(
       }
     }
 
-    // Handle other errors
     if (error.response) {
-      // Server responded with error status (4xx, 5xx)
       console.error('API Error:', error.response.status, error.response.data);
     } else if (error.request) {
-      // Request made but no response received
       console.error('Network Error: No response received');
     } else {
-      // Request setup error
       console.error('Request Error:', error.message);
     }
 
     return Promise.reject(error);
   }
 );
+
+// ------------------------------
+// Core API Fetch Function
+// ------------------------------
+export const apiFetch = async <T = any>(
+  url: string, 
+  options: RequestInit = {}
+): Promise<T> => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const config: RequestInit = {
+    ...options,
+    headers,
+  };
+
+  const response = await fetch(`${API_BASE_URL}${url}`, config);
+  
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+// ------------------------------
+// Listing Functions
+// ------------------------------
+export interface ListingFilters {
+  search?: string;
+  min_price?: number;
+  max_price?: number;
+  property_type?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  furnishing?: string;
+  lng?: number;
+  lat?: number;
+  radius?: number;
+  ordering?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export const fetchListings = async (filters: ListingFilters = {}) => {
+  const response = await api.get(ENDPOINTS.properties.base, { params: filters });
+  return response.data;
+};
+
+export const fetchListingsServer = async (filters: ListingFilters = {}) => {
+  const q = new URLSearchParams();
+  Object.entries(filters).forEach(([k, v]) => {
+    if (v === undefined || v === null || v === "") return;
+    q.append(k, String(v));
+  });
+  
+  const url = `${API_BASE_URL}${ENDPOINTS.properties.base}?${q.toString()}`;
+  const res = await fetch(url, { next: { revalidate: 60 } });
+  
+  if (!res.ok) throw new Error(`Failed to fetch listings: ${res.status}`);
+  return res.json();
+};
+
+export const fetchListingServer = async (id: string) => {
+  const url = `${API_BASE_URL}${ENDPOINTS.properties.detail(id)}`;
+  const res = await fetch(url, { next: { revalidate: 60 } });
+  
+  if (!res.ok) throw new Error(`Failed to fetch listing ${id}`);
+  return res.json();
+};
 
 // ------------------------------
 // Endpoints Configuration
@@ -119,6 +200,14 @@ export const ENDPOINTS = {
   bills: {
     invoices: '/bills/invoices/',
     items: '/bills/items/',
+  },
+  finance: {
+    fees: '/finance/fees/',
+    audits: '/finance/audits/',
+    disputes: '/finance/disputes/',
+  },
+  payments: {
+    webhook: '/payments/webhooks/paystack/',
   },
 } as const;
 
@@ -159,10 +248,15 @@ export const signOut = async (): Promise<boolean> => {
 // ------------------------------
 export default {
   api,
+  authApi,
   ENDPOINTS,
   getToken,
   setTokens,
   removeTokens,
   signOut,
   API_BASE_URL,
+  apiFetch,
+  fetchListings,
+  fetchListingsServer,
+  fetchListingServer,
 };
