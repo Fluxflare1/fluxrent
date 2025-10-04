@@ -1,3 +1,6 @@
+
+code 1 (existing code)
+
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -76,3 +79,55 @@ class UserViewSet(viewsets.ModelViewSet):
             ser.is_valid(raise_exception=True)
             ser.save()
             return Response(ser.data)
+
+
+
+
+
+code 2 (new code) the ai that generated it said i should extend views.py with it so what do we do
+
+from rest_framework.decorators import api_view
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils.crypto import get_random_string
+
+@api_view(["post"])
+def request_access(request):
+    """
+    Request Access (Signup Step 1).
+    Creates a pending user record and sends email verification.
+    """
+    data = request.data
+    email = data.get("email")
+    phone = data.get("phone_number")
+    first_name = data.get("first_name")
+    last_name = data.get("last_name")
+
+    if not email:
+        return Response({"error": "Email is required"}, status=400)
+
+    # temporary password (force reset on login)
+    temp_password = get_random_string(length=10)
+
+    user, created = User.objects.get_or_create(
+        email=email,
+        defaults={
+            "first_name": first_name,
+            "last_name": last_name,
+            "phone_number": phone,
+            "is_active": True,  # active but no KYC yet
+        },
+    )
+
+    if created:
+        user.set_password(temp_password)
+        user.save()
+
+        send_mail(
+            "Welcome to FluxRent",
+            f"Hello {first_name},\n\nYour account has been created.\nUse this link to set your password and complete KYC.\n\nUsername: {email}\nTemp Password: {temp_password}",
+            settings.DEFAULT_FROM_EMAIL,
+            [email],
+        )
+
+    return Response({"detail": "Access requested. Please check your email."})
