@@ -1,11 +1,28 @@
-import api from "./api-client";
 
-// Invoices
-export const fetchInvoices = () => api.get("/bills/invoices/");
-export const fetchInvoice = (id: string) => api.get(`/bills/invoices/${id}/`);
-export const createInvoice = (payload: any) => api.post("/bills/invoices/", payload);
-export const updateInvoice = (id: string, payload: any) => api.put(`/bills/invoices/${id}/`, payload);
+// frontend/lib/api/bills.ts
+import api from "@/lib/api"; // your global axios instance at frontend/lib/api.ts
 
-// Bill Items
+export interface BillItemPayload {
+  id?: number;
+  description: string;
+  amount: number | string;
+}
+
+export interface InvoicePayload {
+  tenant_apartment: number;
+  type: "rent" | "utility" | "other";
+  due_date: string; // ISO date
+  total_amount?: number | string;
+  items?: BillItemPayload[];
+}
+
+export const fetchInvoices = (params?: any) => api.get("/bills/invoices/", { params });
+export const fetchInvoice = (id: number) => api.get(`/bills/invoices/${id}/`);
+export const createInvoice = (payload: InvoicePayload) => api.post("/bills/invoices/", payload);
+export const updateInvoice = (id: number, payload: InvoicePayload) => api.put(`/bills/invoices/${id}/`, payload);
+export const deleteInvoice = (id: number) => api.delete(`/bills/invoices/${id}/`);
+
+export const fetchBillItems = (params?: any) => api.get("/bills/items/", { params });
 export const createBillItem = (payload: any) => api.post("/bills/items/", payload);
-export const updateBillItem = (id: string, payload: any) => api.put(`/bills/items/${id}/`, payload);
+export const updateBillItem = (id: number, payload: any) => api.put(`/bills/items/${id}/`, payload);
+export const deleteBillItem = (id: number) => api.delete(`/bills/items/${id}/`);
