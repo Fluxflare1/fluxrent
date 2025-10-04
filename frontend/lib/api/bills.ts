@@ -1,5 +1,5 @@
 
-// frontend/lib/bills.ts
+// frontend/lib/api/bills.ts
 import api from "@/lib/api"; // your global axios instance at frontend/lib/api.ts
 
 export interface BillItemPayload {
