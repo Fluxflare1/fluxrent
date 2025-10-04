@@ -1,208 +1,158 @@
 // frontend/lib/api.ts
-import axios from "axios";
+import axios, { AxiosResponse, AxiosError } from 'axios';
 
 // ------------------------------
-// API Base
+// API Base Configuration
 // ------------------------------
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-export const api = axios.create({ baseURL: API_BASE_URL });
-export const authApi = axios.create({ baseURL: API_BASE_URL });
-
-// ------------------------------
-// Endpoints map (single definition only!)
-// ------------------------------
-export const ENDPOINTS = {
-  // --- Auth & Users ---
-  auth: {
-    token: "/auth/token/",
-    tokenRefresh: "/auth/token/refresh/",
-    passwordReset: "/auth/password-reset/",
-    passwordResetConfirm: "/auth/password-reset/confirm/",
-  },
-  users: {
-    me: "/users/me/",
-    register: "/users/register/",
-    kyc: "/users/kyc/",
-  },
-
-  // --- Properties / Listings ---
-  properties: {
-    base: "/properties/listings/",
-    detail: (id: number | string) => `/properties/listings/${id}/`,
-    boost: (id: number | string) => `/properties/${id}/boost/`,
-    search: "/properties/?ordering=-ranking_score",
-  },
-
-  // --- Wallet ---
-  wallet: {
-    base: "/wallets/",
-    balances: "/wallets/",
-    validate: "/wallets/validate/",
-    fundConfirm: "/wallets/fund/confirm/",
-    transfer: "/wallets/transfer/",
-    standingOrders: "/wallets/standing_orders/",
-    bills: "/wallets/bills/",
-    savings: "/wallets/savings/",
-    withdrawals: "/wallets/withdrawals/",
-    transactions: "/wallets/transactions/",
-    audit: "/wallet/audit/",
-    refunds: "/wallet/refunds/",
-    disputes: "/wallet/disputes/",
-  },
-
-  // --- Finance ---
-  finance: {
-    fees: "/finance/fees/",
-    audits: "/finance/audits/",
-    disputes: "/finance/disputes/",
-  },
-
-  // --- Payments ---
-  payments: {
-    webhook: "/payments/webhooks/paystack/",
-  },
-
-  // --- Boost ---
-  boost: {
-    packages: "/api/properties/boost/packages/",
-    purchase: "/api/properties/boost/purchase/",
-    confirm: "/api/properties/boost/confirm/",
-  },
-
-  // --- Admin ---
-  admin: {
-    boostAnalytics: "/api/properties/admin/boost-analytics/",
-  },
-
-  // --- Rent Management ---
-  rents: {
-    tenancies: "/rents/tenancies/",
-    invoices: "/rents/invoices/",
-    payments: "/rents/payments/",
-    lateFeeRules: "/rents/late-fee-rules/",
-    reports: "/rents/reports/",
-  },
-};
-
-// ------------------------------
-// Filters typing
-// ------------------------------
-export interface ListingFilters {
-  search?: string;
-  min_price?: number;
-  max_price?: number;
-  property_type?: string;
-  bedrooms?: number;
-  bathrooms?: number;
-  furnishing?: string;
-  lng?: number;
-  lat?: number;
-  radius?: number;
-  ordering?: string;
-  page?: number;
-  page_size?: number;
-}
-
-// ------------------------------
-// Helpers for Listings
-// ------------------------------
-export async function fetchListings(filters: ListingFilters = {}) {
-  const res = await api.get(ENDPOINTS.properties.base, { params: filters });
-  return res.data;
-}
-
-export async function fetchListingsServer(filters: ListingFilters = {}) {
-  const q = new URLSearchParams();
-  Object.entries(filters).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === "") return;
-    q.append(k, String(v));
-  });
-  const url = `${API_BASE_URL}${ENDPOINTS.properties.base}?${q.toString()}`;
-  const res = await fetch(url, { next: { revalidate: 60 } });
-  if (!res.ok) throw new Error(`Failed to fetch listings: ${res.status}`);
-  return res.json();
-}
-
-export async function fetchListingServer(id: string) {
-  const url = `${API_BASE_URL}${ENDPOINTS.properties.detail(id)}`;
-  const res = await fetch(url, { next: { revalidate: 60 } });
-  if (!res.ok) throw new Error(`Failed to fetch listing ${id}`);
-  return res.json();
-}
-
-// ------------------------------
-// Auth Helpers
-// ------------------------------
-export function getToken() {
-  return localStorage.getItem("access_token");
-}
-
-export function setToken(token: string) {
-  localStorage.setItem("access_token", token);
-}
-
-export function removeToken() {
-  localStorage.removeItem("access_token");
-}
-
-export async function signOut() {
-  try {
-    removeToken();
-    return true;
-  } catch (err) {
-    console.error("Sign out failed:", err);
-    return false;
-  }
-}
-
-// ------------------------------
-// Default export
-// ------------------------------
-export default {
-  api,
-  authApi,
-  ENDPOINTS,
-  fetchListings,
-  fetchListingsServer,
-  fetchListingServer,
-  getToken,
-  setToken,
-  removeToken,
-  API_BASE_URL,
-};
-
-
-
-import axios from "axios";
-
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+// Create Axios instance with defaults
+export const api = axios.create({
+  baseURL: API_BASE_URL,
   withCredentials: true,
+  timeout: 10000, // 10 seconds
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
-api.interceptors.response.use(
-  (res) => res,
-  async (error) => {
-    if (error.response?.status === 401) {
-      const refresh = localStorage.getItem("refresh_token");
-      if (refresh) {
-        const { data } = await axios.post(`${api.defaults.baseURL}/auth/token/refresh/`, { refresh });
-        localStorage.setItem("access_token", data.access);
-        error.config.headers.Authorization = `Bearer ${data.access}`;
-        return api.request(error.config);
+// ------------------------------
+// Request Interceptor - Add Auth Token
+// ------------------------------
+api.interceptors.request.use(
+  (config) => {
+    // Safely access localStorage only on client side
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
     }
+    return config;
+  },
+  (error: AxiosError) => {
     return Promise.reject(error);
   }
 );
 
+// ------------------------------
+// Response Interceptor - Handle Token Refresh & Errors
+// ------------------------------
+api.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as any;
+
+    // Handle 401 Unauthorized (token expired)
+    if (error.response?.status === 401 && !originalRequest?._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (refreshToken) {
+          // Attempt to refresh tokens
+          const refreshResponse = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
+            refresh: refreshToken
+          });
+
+          const { access } = refreshResponse.data;
+          localStorage.setItem('access_token', access);
+          
+          // Retry original request with new token
+          originalRequest.headers.Authorization = `Bearer ${access}`;
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        // Refresh failed - redirect to login
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/auth/login';
+        }
+        return Promise.reject(refreshError);
+      }
+    }
+
+    // Handle other errors
+    if (error.response) {
+      // Server responded with error status (4xx, 5xx)
+      console.error('API Error:', error.response.status, error.response.data);
+    } else if (error.request) {
+      // Request made but no response received
+      console.error('Network Error: No response received');
+    } else {
+      // Request setup error
+      console.error('Request Error:', error.message);
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+// ------------------------------
+// Endpoints Configuration
+// ------------------------------
+export const ENDPOINTS = {
+  auth: {
+    token: '/auth/token/',
+    tokenRefresh: '/auth/token/refresh/',
+    passwordReset: '/auth/password-reset/',
+    passwordResetConfirm: '/auth/password-reset/confirm/',
+  },
+  users: {
+    me: '/users/me/',
+    requestAccess: '/users/request-access/',
+    kyc: (id: string) => `/users/${id}/kyc/`,
+    setPassword: (id: string) => `/users/${id}/set_password/`,
+  },
+  properties: {
+    base: '/properties/listings/',
+    detail: (id: number | string) => `/properties/listings/${id}/`,
+    search: '/properties/?ordering=-ranking_score',
+  },
+  wallet: {
+    base: '/wallets/',
+    transactions: '/wallets/transactions/',
+  },
+  rents: {
+    tenancies: '/rents/tenancies/',
+    invoices: '/rents/invoices/',
+    payments: '/rents/payments/',
+  },
+  bills: {
+    invoices: '/bills/invoices/',
+    items: '/bills/items/',
+  },
+} as const;
+
+// ------------------------------
+// Auth Helper Functions
+// ------------------------------
+export const getToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('access_token');
+};
+
+export const setTokens = (access: string, refresh: string): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('access_token', access);
+    localStorage.setItem('refresh_token', refresh);
+  }
+};
+
+export const removeTokens = (): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+  }
+};
+
+export const signOut = async (): Promise<boolean> => {
+  try {
+    removeTokens();
+    return true;
+  } catch (err) {
+    console.error('Sign out failed:', err);
+    return false;
+  }
+};
+
+// Export api as default for use in files like api/bills.ts
 export default api;
-
-
