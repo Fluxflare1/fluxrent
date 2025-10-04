@@ -1,4 +1,4 @@
-// frontend/app/(owner)/disputes/page.tsx
+// frontend/app/(platform_admin)/disputes/page.tsx
 import React from "react";
 import dynamic from "next/dynamic";
 
