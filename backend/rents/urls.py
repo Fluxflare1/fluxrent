@@ -15,3 +15,8 @@ urlpatterns = [
     path("reports/collection-summary/", CollectionSummaryView.as_view(), name="rents-collection-summary"),
     path("reports/late-fees/", LateFeePreviewApplyView.as_view(), name="rents-late-fee-preview-apply"),
 ]
+
+
+
+
+
