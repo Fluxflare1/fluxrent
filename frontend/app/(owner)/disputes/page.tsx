@@ -1,4 +1,3 @@
-// frontend/app/(owner)/disputes/page.tsx
 import React from "react";
 import dynamic from "next/dynamic";
 
@@ -7,17 +6,20 @@ export const metadata = {
   description: "Dispute triage dashboard",
 };
 
-// load client component dynamically to keep page a server component wrapper
-const DisputeAdmin = dynamic(
+// Create a client wrapper component for the dynamic import
+const DisputeAdminClient = dynamic(
   () => import("@/components/admin/DisputeAdmin"),
-  { ssr: false }
+  { 
+    ssr: false,
+    loading: () => <p>Loading disputes...</p>
+  }
 );
 
 export default function Page() {
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-2xl font-semibold mb-4">Dispute Triage</h1>
-      <DisputeAdmin />
+      <DisputeAdminClient />
     </div>
   );
 }
