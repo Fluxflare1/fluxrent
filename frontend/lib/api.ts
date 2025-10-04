@@ -154,5 +154,15 @@ export const signOut = async (): Promise<boolean> => {
   }
 };
 
-// Export api as default for use in files like api/bills.ts
-export default api;
+// ------------------------------
+// Default Export as Object
+// ------------------------------
+export default {
+  api,
+  ENDPOINTS,
+  getToken,
+  setTokens,
+  removeTokens,
+  signOut,
+  API_BASE_URL,
+};
