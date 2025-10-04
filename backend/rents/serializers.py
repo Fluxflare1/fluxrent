@@ -1,5 +1,4 @@
 # backend/rents/serializers.py
-# backend/rents/serializers.py
 from rest_framework import serializers
 from .models import Tenancy, LateFeeRule, RentInvoice, RentPayment, Receipt
 from django.utils import timezone
