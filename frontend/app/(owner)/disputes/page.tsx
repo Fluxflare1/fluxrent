@@ -1,19 +1,10 @@
 import React from "react";
-import dynamic from "next/dynamic";
+import DisputeAdminClient from "./DisputeAdminClient";
 
 export const metadata = {
   title: "Admin — Disputes",
   description: "Dispute triage dashboard",
 };
-
-// Create a client wrapper component for the dynamic import
-const DisputeAdminClient = dynamic(
-  () => import("@/components/admin/DisputeAdmin"),
-  { 
-    ssr: false,
-    loading: () => <p>Loading disputes...</p>
-  }
-);
 
 export default function Page() {
   return (
