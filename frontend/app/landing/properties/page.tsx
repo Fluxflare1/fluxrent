@@ -2,16 +2,7 @@ import { fetchListingsServer } from "@/lib/api"
 import ListingGrid from "@/components/listings/ListingGrid"
 import FiltersPanel from "@/components/listings/FiltersPanel"
 import Pagination from "@/components/listings/Pagination"
-import dynamic from "next/dynamic"
-
-// Create a client wrapper component for the dynamic import
-const MapViewClient = dynamic(
-  () => import("@/components/listings/MapView"),
-  { 
-    ssr: false,
-    loading: () => <div className="h-64 bg-gray-100 rounded flex items-center justify-center">Loading map...</div>
-  }
-)
+import MapViewClient from "./MapViewClient"
 
 export const metadata = {
   title: "Properties — Browse | FluxRent",
