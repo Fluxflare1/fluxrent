@@ -1,19 +1,27 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-
-  // Update: Use the stable version instead of experimental
   typedRoutes: true,
+  
+  // ADD THIS WEBPACK CONFIG
+  webpack: (config) => {
+    // Skip processing Leaflet CSS files
+    config.module.rules.push({
+      test: /\.css$/,
+      include: /node_modules\/leaflet/,
+      use: ['ignore-loader']
+    });
+    
+    return config;
+  },
 
   async rewrites() {
     return [
-      // FluxRent.com → landing app
       {
         source: "/:path*",
         has: [{ type: "host", value: "fluxrent.com" }],
         destination: "/landing/:path*",
       },
-      // Checkalist.com → listings app
       {
         source: "/:path*",
         has: [{ type: "host", value: "checkalist.com" }],
