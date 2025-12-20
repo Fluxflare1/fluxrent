@@ -2,20 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   typedRoutes: true,
-  
-  // CRITICAL: Disable CSS processing for problematic modules
-  webpack: (config, { isServer }) => {
-    // Find and modify the CSS rule
-    const cssRule = config.module.rules.find(
-      rule => rule.test && rule.test.toString().includes('.css')
-    );
-    
-    if (cssRule) {
-      cssRule.exclude = /node_modules\/leaflet/;
-    }
-    
-    return config;
-  },
 
   async rewrites() {
     return [
