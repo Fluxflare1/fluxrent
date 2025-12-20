@@ -1,4 +1,4 @@
-/* Leaflet + markercluster CSS from node_modules */
+/* IMPORTANT: @import must come before ALL other rules (including @tailwind) */
 @import "leaflet/dist/leaflet.css";
 @import "leaflet.markercluster/dist/MarkerCluster.css";
 @import "leaflet.markercluster/dist/MarkerCluster.Default.css";
@@ -8,7 +8,9 @@
 @tailwind utilities;
 
 /* small global styles for admin/landing look */
-html, body, #__next {
+html,
+body,
+#__next {
   height: 100%;
 }
 
