@@ -1,5 +1,4 @@
 import "leaflet/dist/leaflet.css"
-import "leaflet.markercluster/dist/MarkerCluster.css"
 
 import "../styles/globals.css"
 import { ReactNode } from "react"
