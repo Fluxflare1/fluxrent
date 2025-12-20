@@ -1,16 +1,24 @@
+/* Leaflet + markercluster CSS from node_modules
+   IMPORTANT: @import must come before any other style rules. */
+@import "leaflet/dist/leaflet.css";
+@import "leaflet.markercluster/dist/MarkerCluster.css";
+@import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* small global styles for admin/landing look */
-html, body, #__next {
+/* Small global styles for admin/landing look */
+html,
+body,
+#__next {
   height: 100%;
 }
 
-/* Leaflet + markercluster CSS from node_modules */
-@import "leaflet/dist/leaflet.css";
-@import "leaflet.markercluster/dist/MarkerCluster.css";
-@import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+/* Optional: Add smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
 
 /* Leaflet container sizing */
 .leaflet-container {
@@ -19,12 +27,7 @@ html, body, #__next {
   max-height: 420px;
 }
 
-/* Optional: Add smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Optional: Better focus styles for accessibility */
+/* Better focus styles for accessibility */
 *:focus {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
