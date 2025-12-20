@@ -1,4 +1,4 @@
-from wallets.models import Wallet
+from wallet.models import Wallet
 from django.db import transaction
 
 class KYCVerificationView(APIView):
