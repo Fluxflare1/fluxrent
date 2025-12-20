@@ -28,7 +28,7 @@ except Exception:
     PaymentTransaction = None
 
 try:
-    from wallets.models import Transaction as WalletTransaction
+    from wallet.models import Transaction as WalletTransaction
 except Exception:
     WalletTransaction = None
 
