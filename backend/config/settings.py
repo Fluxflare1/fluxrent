@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     "platform_admin.apps.PlatformAdminConfig",  # <-- FIXED: Changed from Platform_adminConfig
     "properties.apps.PropertiesConfig",
     "bills.apps.BillsConfig",
-    "wallets.apps.WalletsConfig",
+    "wallet.apps.WalletsConfig",
     "rents.apps.RentsConfig",
     "disputes.apps.DisputesConfig",
     "payments.apps.PaymentsConfig",
