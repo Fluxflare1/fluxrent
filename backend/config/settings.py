@@ -37,7 +37,7 @@ INSTALLED_APPS = [
 
     # Local apps
     "users.apps.UsersConfig",
-    "platform_admin.apps.Platform_adminConfig",
+    "platform_admin.apps.PlatformAdminConfig",  # <-- FIXED: Changed from Platform_adminConfig
     "properties.apps.PropertiesConfig",
     "bills.apps.BillsConfig",
     "wallets.apps.WalletsConfig",
@@ -176,10 +176,7 @@ if SENTRY_DSN:
         send_default_pii=True,
     )
 
-
-
-
-
+# Channels (for WebSockets/async)
 INSTALLED_APPS += ["channels"]
 
 ASGI_APPLICATION = "backend.asgi.application"
@@ -193,30 +190,11 @@ CHANNEL_LAYERS = {
     },
 }
 
-
-
-
-# settings.py
+# OWNER_STATS_MODEL (example configurations - adjust as needed)
 OWNER_STATS_BOOST_MODEL = "wallets.Boost"           # example replacement
 OWNER_STATS_PROPERTY_MODEL = "listings.Property"    # adjust to your property model
 OWNER_STATS_USER_MODEL = "auth.User"                # default is fine
 
-   
-
-# Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'your-smtp-host'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your-email@fluxrent.com'
-EMAIL_HOST_PASSWORD = 'your-email-password'
-DEFAULT_FROM_EMAIL = 'noreply@fluxrent.com'
-
-# Frontend URL for email links
-FRONTEND_URL = 'https://yourapp.com'
-
-# JWT Configuration
-SIMPLE_JWT = {
-    'USER_ID_FIELD': 'uid',
-    'USER_ID_CLAIM': 'uid',
-}
+# JWT Configuration (already defined above in SIMPLE_JWT, remove duplicate if exists)
+# Note: You have duplicate SIMPLE_JWT settings (lines 98-108 and 179-182)
+# Remove the later duplicate section (lines 179-182)
