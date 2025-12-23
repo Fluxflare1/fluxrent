@@ -1,20 +1,28 @@
 import { brands } from "@/lib/brandConfig"
-import { cookies, headers } from "next/headers"
 import ProvidersWrapperClient from "@/components/ProvidersWrapperClient"
+import { cookies, headers } from "next/headers"
 
-function detectBrand() {
-  const cookieStore = cookies()
-  const brandCookie = cookieStore.get("brand")?.value
+type BrandKey = "fluxrent" | "checkalist"
 
-  if (brandCookie && brands[brandCookie as "fluxrent" | "checkalist"]) {
-    return brands[brandCookie as "fluxrent" | "checkalist"]
+async function detectBrand() {
+  const cookieStore = await cookies()
+  const brandCookie = cookieStore.get("brand")?.value as BrandKey | undefined
+
+  if (brandCookie && brands[brandCookie]) {
+    return brands[brandCookie]
   }
 
-  const host = headers().get("host") || ""
+  const headersList = await headers()
+  const host = headersList.get("host") || ""
+
   return host.includes("checkalist.com") ? brands.checkalist : brands.fluxrent
 }
 
-export default function ProvidersWrapper({ children }: { children?: React.ReactNode }) {
-  const brand = detectBrand()
+export default async function ProvidersWrapper({
+  children,
+}: {
+  children?: React.ReactNode
+}) {
+  const brand = await detectBrand()
   return <ProvidersWrapperClient brand={brand}>{children}</ProvidersWrapperClient>
 }
