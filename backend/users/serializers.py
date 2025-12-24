@@ -1,3 +1,4 @@
+backend/users/serializers.py
 from rest_framework import serializers
 from .models import User, KYC
 from django.contrib.auth import password_validation
@@ -13,7 +14,7 @@ class UserSerializer(serializers.ModelSerializer):
     kyc = KYCSerializer(read_only=True)
     class Meta:
         model = User
-        fields = ["id", "uid", "email", "first_name", "last_name", "phone_number", "role", "is_active", "date_joined", "kyc"]
+        fields = ["id", "uid", "email", "first_name", "last_name", "phone_number", "role", "date_joined", "kyc"]  # ✅ Removed: is_active
         read_only_fields = ["id", "uid", "date_joined"]
 
 
